@@ -52,7 +52,8 @@ void l1t::Stage1Layer2FlowAlgorithm::processEvent(const std::vector<l1t::CaloReg
 
   double HFq2 = q2x*q2x+q2y*q2y;
   //double psi2 = 0.5 * atan(q2y/q2x);
-    
+  //std::cout << HFq2 << std::endl;
+  
   ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> > etLorentz(0,0,0,0);
 
   // convert back to hardware ET
