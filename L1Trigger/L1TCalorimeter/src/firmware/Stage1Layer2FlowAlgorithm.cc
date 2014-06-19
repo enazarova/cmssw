@@ -1,8 +1,7 @@
 ///
 /// \class l1t::Stage1Layer2FlowAlgorithm
 ///
-/// \authors: Gian Michele Innocenti
-///           R. Alex Barbieri
+/// \authors: Maxime Guilbaud 
 ///
 /// Description: Flow Algorithm HI
 
@@ -10,10 +9,15 @@
 #include "L1Trigger/L1TCalorimeter/interface/Stage1Layer2HFRingSumAlgorithmImp.h"
 #include "L1Trigger/L1TCalorimeter/interface/PUSubtractionMethods.h"
 #include "L1Trigger/L1TCalorimeter/interface/legacyGtHelper.h"
+#include "L1Trigger/L1TCalorimeter/interface/Stage1Layer2EtSumAlgorithmImp.h"
 
 l1t::Stage1Layer2FlowAlgorithm::Stage1Layer2FlowAlgorithm(CaloParamsStage1* params) : params_(params)
 {
-
+  //now do what ever initialization is needed
+  for(unsigned int i = 0; i < L1CaloRegionDetId::N_PHI; i++) {
+    sinPhi.push_back(sin(2. * 3.1415927 * i * 1.0 / L1CaloRegionDetId::N_PHI));
+    cosPhi.push_back(cos(2. * 3.1415927 * i * 1.0 / L1CaloRegionDetId::N_PHI));
+  }
 }
 
 
@@ -27,25 +31,39 @@ void l1t::Stage1Layer2FlowAlgorithm::processEvent(const std::vector<l1t::CaloReg
 						  const std::vector<l1t::CaloEmCand> & EMCands,
 						  std::vector<l1t::HFRingSum> * counts) {
 
-  // ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> > etLorentz(0,0,0,0);
 
-  // // convert back to hardware ET
-  // l1t::EtSum etMiss(*&etLorentz,EtSum::EtSumType::kMissingEt,MET/jetLsb ,0,iPhiET,0);
-  // l1t::EtSum htMiss(*&etLorentz,EtSum::EtSumType::kMissingHt,MHT/jetLsb ,0,iPhiHT,0);
-  // l1t::EtSum etTot (*&etLorentz,EtSum::EtSumType::kTotalEt,sumET/jetLsb,0,0,0);
-  // l1t::EtSum htTot (*&etLorentz,EtSum::EtSumType::kTotalHt,sumHT/jetLsb ,0,0,0);
+  double q2x = 0;
+  double q2y = 0;
+  double regionET=0.;  
+    
+  for(std::vector<CaloRegion>::const_iterator region = regions.begin(); region != regions.end(); region++) {
+   
+    int ieta=region->hwEta();    
+    if (ieta > 3 && ieta < 18) {
+      continue;
+    }
 
-  // std::vector<l1t::EtSum> *preGtEtSums = new std::vector<l1t::EtSum>();
+    int iphi=region->hwPhi();    
+    regionET=region->hwPt();
+    
+    q2x+= regionET * cosPhi[iphi];
+    q2y+= regionET * sinPhi[iphi];
+  }
 
-  // preGtEtSums->push_back(etMiss);
-  // preGtEtSums->push_back(htMiss);
-  // preGtEtSums->push_back(etTot);
-  // preGtEtSums->push_back(htTot);
+  double HFq2 = q2x*q2x+q2y*q2y;
+  //double psi2 = 0.5 * atan(q2y/q2x);
+    
+  ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> > etLorentz(0,0,0,0);
 
-  // // All algorithms
-  // EtSumToGtScales(params_, preGtEtSums, etsums);
+  // convert back to hardware ET
+  l1t::HFRingSum etTot (*&etLorentz,HFRingSum::HFRingSumType::V2,HFq2,0,0,0);
 
-  // delete subRegions;
-  // delete preGtEtSums;
+  std::vector<l1t::HFRingSum> *preGtHFRingSums = new std::vector<l1t::HFRingSum>();
+  preGtHFRingSums->push_back(etTot);
+
+  // All algorithms
+  //EtSumToGtScales(params_, preGtHFRingSums, counts);
+
+  delete preGtHFRingSums;
 
 }
