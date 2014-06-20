@@ -58,13 +58,14 @@ void l1t::Stage1Layer2FlowAlgorithm::processEvent(const std::vector<l1t::CaloReg
 
   // convert back to hardware ET
   l1t::HFRingSum etTot (*&etLorentz,HFRingSum::HFRingSumType::V2,HFq2,0,0,0);
+  counts->push_back(etTot);
 
-  std::vector<l1t::HFRingSum> *preGtHFRingSums = new std::vector<l1t::HFRingSum>();
-  preGtHFRingSums->push_back(etTot);
+  //std::vector<l1t::HFRingSum> *preGtHFRingSums = new std::vector<l1t::HFRingSum>();
+  //preGtHFRingSums->push_back(etTot);
 
   // All algorithms
   //EtSumToGtScales(params_, preGtHFRingSums, counts);
 
-  delete preGtHFRingSums;
+  //delete preGtHFRingSums;
 
 }
