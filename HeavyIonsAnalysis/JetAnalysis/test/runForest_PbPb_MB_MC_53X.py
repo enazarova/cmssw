@@ -31,7 +31,7 @@ process.HiForest.HiForestVersion = cms.untracked.string(version)
 
 process.source = cms.Source("PoolSource",
                             duplicateCheckMode = cms.untracked.string("noDuplicateCheck"),
-                            fileNames = cms.untracked.vstring('root://xrootd.cmsaf.mit.edu//store/user/ginnocen/Hydjet1p8_TuneDrum_Quenched_MinBias_2760GeV/HiMinBias_RECO_26June2014/296b762a3f7ae585942f7234457ce1af/step3_RAW2DIGI_L1Reco_RECO_1000_1_Ajv.root')
+                            fileNames = cms.untracked.vstring('file:/mnt/hadoop/cms/store/user/ginnocen/Hydjet1p8_TuneDrum_Quenched_MinBias_2760GeV/HiMinBias_RECO_26June2014/296b762a3f7ae585942f7234457ce1af/step3_RAW2DIGI_L1Reco_RECO_1000_1_Ajv.root')
     )
 
 # Number of events we want to process, -1 = all events
@@ -254,6 +254,7 @@ process.ana_step = cms.Path(process.heavyIon*
                             process.pfcandAnalyzer +
                             process.rechitAna +
 #temp                            process.hltMuTree +
+                            process.randomCones +
                             process.HiForest +
                             process.cutsTPForFak +
                             process.cutsTPForEff +

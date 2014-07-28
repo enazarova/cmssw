@@ -32,13 +32,12 @@ process.HiForest.HiForestVersion = cms.untracked.string(version)
 process.source = cms.Source("PoolSource",
                             duplicateCheckMode = cms.untracked.string("noDuplicateCheck"),
                             fileNames = cms.untracked.vstring(
-    "/store/himc/HiFall13DR53X/Pyquen_DiJet_Pt370_TuneZ2_Unquenched_Hydjet1p8_2760GeV/GEN-SIM-RECO/NoPileUp_STARTHI53_LV1-v4/00000/024C7240-DCDD-E311-882D-7845C4FC3B1B.root"
+    'file:/mnt/hadoop/cms/store/user/ginnocen/Hydjet1p8_TuneDrum_Quenched_MinBias_2760GeV/HiMinBias_RECO_26June2014/296b762a3f7ae585942f7234457ce1af/step3_RAW2DIGI_L1Reco_RECO_1000_1_Ajv.root'
     ))
 
 # Number of events we want to process, -1 = all events
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(10))
-
 
 #####################################################################################
 # Load Global Tag, Geometry, etc.
@@ -197,6 +196,7 @@ process.load('HeavyIonsAnalysis.JetAnalysis.TrkAnalyzers_MC_cff')
 process.load("HeavyIonsAnalysis.TrackAnalysis.METAnalyzer_cff")
 process.load("HeavyIonsAnalysis.JetAnalysis.pfcandAnalyzer_cfi")
 process.load('HeavyIonsAnalysis.JetAnalysis.rechitanalyzer_cfi')
+process.load('HeavyIonsAnalysis.JetAnalysis.RandomCones_cff')
 process.rechitAna = cms.Sequence(process.rechitanalyzer+process.pfTowers)
 process.pfcandAnalyzer.skipCharged = False
 process.pfcandAnalyzer.pfPtMin = 0

@@ -3,7 +3,7 @@ from RecoHI.HiJetAlgos.HiPFJetParameters_cff import *
 from RecoHI.HiJetAlgos.HiCaloJetParameters_cff import *
 
 akPu1PFCones = cms.EDProducer(
-    "JetAlgorithmAnalyzer",
+    "HiInclusiveJetAnalyzer",
     HiPFJetParameters,
     AnomalousCellParameters,
     MultipleAlgoIteratorBlock,
@@ -26,6 +26,11 @@ akPu1PFCones = cms.EDProducer(
 akPu1PFCones.doPUOffsetCorr = True
 akPu1PFCones.jetType = 'BasicJet'
 akPu1PFCones.src = cms.InputTag("PFTowers")
+
+akPu1PFCones = cms.PSet(
+    initialSeed = cms.untracked.uint32(6),
+    engineName = cms.untracked.string('TRandom3')
+  )
 
 akPu2PFCones = akPu1PFCones.clone(rParam = 0.2, patJetSrc = cms.untracked.InputTag("akPu2PFpatJets"))
 akPu3PFCones = akPu1PFCones.clone(rParam = 0.3, patJetSrc = cms.untracked.InputTag("akPu3PFpatJets"))
