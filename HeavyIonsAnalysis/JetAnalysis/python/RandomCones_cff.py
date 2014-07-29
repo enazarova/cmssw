@@ -23,8 +23,15 @@ akPu1PFCones = cms.EDProducer(
     puPtMin = cms.double(15.0)    
     )
 
+#akVs1PFCones = cms.EDProducer(
+#    "JetAlgorithmAnalyzer",
+#    
+#    )
+
+#changing doPUOffsetCorr from True to False to check if it removes the negative contributions to E_T 
 akPu1PFCones.doPUOffsetCorr = True
 akPu1PFCones.jetType = 'BasicJet'
+#akPu1PFCones.src = cms.InputTag("particleFlowTmp")
 akPu1PFCones.src = cms.InputTag("PFTowers")
 
 akPu2PFCones = akPu1PFCones.clone(rParam = cms.double(0.2), patJetSrc = cms.untracked.InputTag("akPu2PFpatJets"))
@@ -60,12 +67,14 @@ akPu6CaloCones.puPtMin = cms.double(12.0)
 akPu7CaloCones.puPtMin = cms.double(14.0)
 
 randomCones = cms.Sequence(
+    akPu1PFCones+
     akPu2PFCones+
     akPu3PFCones+
     akPu4PFCones+
     akPu5PFCones+
     akPu6PFCones+
     akPu7PFCones+
+    akPu1CaloCones+
     akPu2CaloCones+
     akPu3CaloCones+
     akPu4CaloCones+

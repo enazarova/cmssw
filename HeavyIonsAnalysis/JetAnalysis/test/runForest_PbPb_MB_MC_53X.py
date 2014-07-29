@@ -14,6 +14,21 @@ process.options = cms.untracked.PSet(
 )
 
 #####################################################################################
+# Random Number generator: 
+#####################################################################################
+import FWCore.ParameterSet.VarParsing as VarParsing
+
+ivars = VarParsing.VarParsing('python')
+
+ivars.register ('randomNumber',
+                1,
+                ivars.multiplicity.singleton,
+                ivars.varType.int,
+                "Random Seed")
+
+ivars.randomNumber = 1
+
+#####################################################################################
 # HiForest labelling info
 #####################################################################################
 
@@ -202,7 +217,9 @@ process.pfcandAnalyzer.skipCharged = False
 process.pfcandAnalyzer.pfPtMin = 0
 
 #####################################################################################
-
+# Get the random number of cones
+#####################################################################################
+process.RandomNumberGeneratorService.generator.initialSeed = ivars.randomNumber 
 process.RandomNumberGeneratorService.akPu1PFCones = process.RandomNumberGeneratorService.generator.clone()
 process.RandomNumberGeneratorService.akPu2PFCones = process.RandomNumberGeneratorService.generator.clone()
 process.RandomNumberGeneratorService.akPu3PFCones = process.RandomNumberGeneratorService.generator.clone()
