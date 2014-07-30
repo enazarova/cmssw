@@ -5,22 +5,22 @@ from RecoHI.HiJetAlgos.HiCaloJetParameters_cff import *
 akPu1PFCones = cms.EDProducer(
     "JetAlgorithmAnalyzer",
     HiPFJetParameters,
-    AnomalousCellParameters,
-    MultipleAlgoIteratorBlock,
-    jetAlgorithm = cms.string("AntiKt"),
-    rParam       = cms.double(0.1),
-    useInputJets = cms.untracked.bool(True),
-    useTowersForBkg = cms.untracked.bool(True),
-    centralityTag = cms.InputTag("hiCentrality"),
+    AnomalousCellParameters, #
+    MultipleAlgoIteratorBlock, #
+    jetAlgorithm = cms.string("AntiKt"), #
+    rParam       = cms.double(0.1), #
+    useInputJets = cms.untracked.bool(True), # ??
+    useTowersForBkg = cms.untracked.bool(True), #changed to false
+    centralityTag = cms.InputTag("hiCentrality"), #changed from pACentrality
     evtPlaneTag = cms.InputTag("hiEvtPlane","recoLevel"),
-    avoidNegative = cms.bool(False),
-    patJetSrc = cms.untracked.InputTag("akPu1PFpatJets"),
-    evtPlaneIndex = cms.untracked.int32(21),
-    doBackToBack  = cms.untracked.bool(True),
-    centrality  = cms.untracked.int32(-1),
-    doRecoEvtPlane  = cms.untracked.bool(False),        
-    doAnalysis  = cms.untracked.bool(False),
-    puPtMin = cms.double(15.0)    
+    avoidNegative = cms.bool(True), #changed to true
+    evtPlaneIndex = cms.untracked.int32(21), # ??
+    doBackToBack  = cms.untracked.bool(True), # Sevil mentioned this before
+    patJetSrc = cms.untracked.InputTag("akPu1PFpatJets"), #need to understand this
+    centrality  = cms.untracked.int32(-1), # ??
+    doRecoEvtPlane  = cms.untracked.bool(False), # ??        
+    doAnalysis  = cms.untracked.bool(True), # why false?
+    puPtMin = cms.double(15.0) # set later to 5.0
     )
 
 #akVs1PFCones = cms.EDProducer(
@@ -28,11 +28,17 @@ akPu1PFCones = cms.EDProducer(
 #    
 #    )
 
+#ak1PFCones = cms.EDProducer(
+#    "JetAlgorithmAnalyzer",
+#
+#    )
+
 #changing doPUOffsetCorr from True to False to check if it removes the negative contributions to E_T 
 akPu1PFCones.doPUOffsetCorr = True
 akPu1PFCones.jetType = 'BasicJet'
 #akPu1PFCones.src = cms.InputTag("particleFlowTmp")
 akPu1PFCones.src = cms.InputTag("PFTowers")
+
 
 akPu2PFCones = akPu1PFCones.clone(rParam = cms.double(0.2), patJetSrc = cms.untracked.InputTag("akPu2PFpatJets"))
 akPu3PFCones = akPu1PFCones.clone(rParam = cms.double(0.3), patJetSrc = cms.untracked.InputTag("akPu3PFpatJets"))

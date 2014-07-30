@@ -15,6 +15,11 @@
 #include <iostream>
 using namespace std;
 
+// Raghav Kunnawalkam Elayavalli
+// Rutgers U
+// raghav.k.e at CERN dot CH
+// July 30 2014
+
 static const int nSteps = 8;
 static const double PI = 3.141592653589;
 
@@ -174,6 +179,17 @@ private:
 using namespace std;
 using namespace edm;
 
+namespace reco {
+  namespace helper {
+    struct GreaterByPtPseudoJet {
+      bool operator()( const fastjet::PseudoJet & t1, const fastjet::PseudoJet & t2 ) const {
+	return t1.perp() > t2.perp();
+      }
+    };
+
+  }
+}
+
 static const double pi = 3.14159265358979;
 
 CLHEP::HepRandomEngine* randomEngine;
@@ -315,30 +331,40 @@ void JetAlgorithmAnalyzer::fillNtuple(int output, const  std::vector<fastjet::Ps
     h = 0;
   }
 
-  //bool printDebug = 0;
+  int printDebug = 1;
 
   double totet = 0;
   int ntow = 0;
-  //int nj = jets.size();
+  int nj = jets.size();
 
-  //if(printDebug){
-  //   cout<<"step : "<<step<<endl;
-  //   cout<<"Size of input : "<<nj<<endl;
-  //}
+  if(printDebug == 1){
+     cout<<"step : "<<step<<endl;
+     cout<<"Size of input : "<<nj<<endl;
+  }
+
   for(unsigned int i = 0; i < jets.size(); ++i){
+    cout<<"i = "<<i<<endl;
     const fastjet::PseudoJet& jet = jets[i];
 
     double pt = jet.perp();
+    cout<<pt<<endl;
     int ieta = -99;
+
+    cout<<"passed 0"<<endl;
+
     if(output != 1){
       reco::CandidatePtr const & itow =  inputs_[ jet.user_index() ];
       pt =  itow->et();
       ieta = subtractor_->ieta(itow);
     }
 
+    cout<<"passed 1"<<endl;
+
     if(output == 0 && step == 6){
       hPTieta->Fill(ieta,pt);
     }
+
+    cout<<"passed 2"<<endl;
 
     double phi = jet.phi();
     if(output == 2){
@@ -347,6 +373,8 @@ void JetAlgorithmAnalyzer::fillNtuple(int output, const  std::vector<fastjet::Ps
       if(phi > 2*PI) phi -= 2*PI;
     }
 
+    cout<<"passed 3"<<endl;
+
     double eta = jet.eta();
     if(eta > 0 && eta < 0.08){
       //     if(fabs(eta) < 1.){
@@ -354,17 +382,20 @@ void JetAlgorithmAnalyzer::fillNtuple(int output, const  std::vector<fastjet::Ps
       ntow++;
     }
 
+    cout<<"passed 4"<<endl;
+
     nt->Fill(jet.eta(),phi,pt,step,iev_);
     h->Fill(jet.eta(),phi,pt);
+
   }
-  // if(printDebug && 0){
-  // cout<<"-----------------------------"<<endl;
-  // cout<<"STEP             = "<<step<<endl;
-  // cout<<"Total ET         = "<<totet<<endl;
-  // cout<<"Towers counted   = "<<ntow<<endl;
-  // cout<<"Average tower ET = "<<totet/ntow<<endl;
-  // cout<<"-----------------------------"<<endl;
-  // }
+  if(printDebug == 1){
+    cout<<"-----------------------------"<<endl;
+    cout<<"STEP             = "<<step<<endl;
+    cout<<"Total ET         = "<<totet<<endl;
+    cout<<"Towers counted   = "<<ntow<<endl;
+    cout<<"Average tower ET = "<<totet/ntow<<endl;
+    cout<<"-----------------------------"<<endl;
+  }
 }
 
 
@@ -379,10 +410,6 @@ void JetAlgorithmAnalyzer::fillJetNtuple(const  std::vector<fastjet::PseudoJet>&
   for(unsigned int i = 0; i < jets.size(); ++i){
     const fastjet::PseudoJet& jet = jets[i];
     std::vector<fastjet::PseudoJet> fjConstituents = sorted_by_pt(fjClusterSeq_->constituents(jet));
-
-
-
-
     fillNtuple(3,fjConstituents,step);
   }
 }
@@ -394,9 +421,9 @@ void JetAlgorithmAnalyzer::fillBkgNtuple(const PileUpSubtractor* subtractor, int
     if(ieta == 0) continue;
     CaloTowerDetId id(ieta,1);
     const GlobalPoint& hitpoint = geo->getPosition(id);
-    //  cout<<"iETA "<<ieta<<endl;
+    cout<<"iETA "<<ieta<<endl;
     double eta = hitpoint.eta();
-    //  cout<<"eta "<<eta<<endl;
+    cout<<"eta "<<eta<<endl;
     math::PtEtaPhiMLorentzVector p4(1,eta,1.,1.);
     GlobalPoint pos(1,1,1);
     CaloTower c(id,1.,1.,1.,1,1, p4, pos,pos);
@@ -418,9 +445,10 @@ void JetAlgorithmAnalyzer::fillBkgNtuple(const PileUpSubtractor* subtractor, int
   }
 }
 
+
 void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSetup)
 {
-
+  
   if(!centrality_) centrality_ = new CentralityProvider(iSetup);
   centrality_->newEvent(iEvent,iSetup);
 
@@ -438,11 +466,11 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   sumET_ = centrality_->raw()->Ntracks();
   bin_ = centrality_->getBin();
 
-  //   cout<<("VirtualJetProducer") << "Entered produce\n";
+  cout<<("VirtualJetProducer") << " Entered produce\n";
   //determine signal vertex
   vertex_=reco::Jet::Point(0,0,0);
   if (makeCaloJet(jetTypeE)&&doPVCorrection_) {
-    //     cout<<("VirtualJetProducer") << "Adding PV info\n";
+    cout<<("VirtualJetProducer") << " Adding PV info\n";
     edm::Handle<reco::VertexCollection> pvCollection;
     iEvent.getByLabel(srcPVs_,pvCollection);
     if (pvCollection->size()>0) vertex_=pvCollection->begin()->position();
@@ -451,12 +479,12 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   // For Pileup subtraction using offset correction:
   // set up geometry map
   if ( doPUOffsetCorr_ ) {
-    //      cout<<"setting up ... "<<endl;
+    cout<<"setting up ... "<<endl;
     subtractor_->setupGeometryMap(iEvent, iSetup);
   }
 
   // clear data
-  //   cout<<("VirtualJetProducer") << "Clear data\n";
+  cout<<("VirtualJetProducer") << " Clear data\n";
   fjInputs_.clear();
   fjJets_.clear();
   inputs_.clear();
@@ -467,21 +495,20 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
     phi0_  = (*planes)[evtPlaneIndex_].angle();
   }
 
-
   // get inputs and convert them to the fastjet format (fastjet::PeudoJet)
   edm::Handle<reco::CandidateView> inputsHandle;
   iEvent.getByLabel(src_,inputsHandle);
   for (size_t i = 0; i < inputsHandle->size(); ++i) {
     inputs_.push_back(inputsHandle->ptrAt(i));
   }
-  //   cout<<("VirtualJetProducer") << "Got inputs\n";
+  cout<<("VirtualJetProducer") << " Got inputs\n";
 
   // Convert candidates to fastjet::PseudoJets.
   // Also correct to Primary Vertex. Will modify fjInputs_
   // and use inputs_
   fjInputs_.reserve(inputs_.size());
   inputTowers();
-  //   cout<<("VirtualJetProducer") << "Inputted towers\n";
+  cout<<("VirtualJetProducer") << "Inputted towers = "<<inputs_.size()<<" (which is not doing anything - WHY)\n";
 
   fillTowerNtuple(fjInputs_,0);
   fillBkgNtuple(subtractor_.get(),0);
@@ -501,7 +528,7 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
     fillTowerNtuple(fjInputs_,2);
     fillBkgNtuple(subtractor_.get(),2);
 
-    //      cout<<("VirtualJetProducer") << "Subtracted pedestal\n";
+    cout<<("VirtualJetProducer") << "Subtracted pedestal\n";
   }
 
   // Run algorithm. Will modify fjJets_ and allocate fjClusterSeq_.
@@ -510,13 +537,14 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
 
   fillTowerNtuple(fjInputs_,3);
   fillBkgNtuple(subtractor_.get(),3);
-  //   fillJetNtuple(fjJets_,3);
+  fillJetNtuple(fjJets_,3);
 
-///   if ( doPUOffsetCorr_ ) {
-///      subtractor_->setAlgorithm(fjClusterSeq_);
-///   }
+  //why is the following commented out?
+  //   if ( doPUOffsetCorr_ ) {
+  //      subtractor_->setAlgorithm(fjClusterSeq_);
+  //   }
 
-//   cout<<("VirtualJetProducer") << "Ran algorithm\n";
+  cout<<("VirtualJetProducer") << "Ran algorithm\n";
 
   // For Pileup subtraction using offset correction:
   // Now we find jets and need to recalculate their energy,
@@ -529,18 +557,18 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
     subtractor_->calculateOrphanInput(orphanInput);
     fillTowerNtuple(orphanInput,4);
     fillBkgNtuple(subtractor_.get(),4);
-    //      fillJetNtuple(fjJets_,4);
+    fillJetNtuple(fjJets_,4);
 
     //only the id's of the orphan input are used, not their energy
     subtractor_->calculatePedestal(orphanInput);
     fillTowerNtuple(orphanInput,5);
     fillBkgNtuple(subtractor_.get(),5);
-    //      fillJetNtuple(fjJets_,5);
+    fillJetNtuple(fjJets_,5);
 
     subtractor_->offsetCorrectJets();
     fillTowerNtuple(orphanInput,6);
     fillBkgNtuple(subtractor_.get(),6);
-    //      fillJetNtuple(fjJets_,6);
+    fillJetNtuple(fjJets_,6);
 
   }
 
@@ -550,13 +578,14 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   // this will use inputs_
   output( iEvent, iSetup );
   fillBkgNtuple(subtractor_.get(),7);
-  //  fillJetNtuple(fjJets_,7);
+  //following line was commented out, need to check the output
+  fillJetNtuple(fjJets_,7);
 
-  //   cout<<("VirtualJetProducer") << "Wrote jets\n";
+  cout<<("VirtualJetProducer") << "Wrote jets\n";
 
   ++iev_;
 
-  doAnalysis_ = false;
+  doAnalysis_ = false;//why!!!
   return;
 }
 
@@ -565,7 +594,7 @@ void JetAlgorithmAnalyzer::output(edm::Event & iEvent, edm::EventSetup const& iS
   // Write jets and constitutents. Will use fjJets_, inputs_
   // and fjClusterSeq_
 
-  //  cout<<"output running "<<endl;
+  cout<<"output running "<<endl;
   //  return;
 
   switch( jetTypeE ) {
@@ -596,12 +625,105 @@ void JetAlgorithmAnalyzer::output(edm::Event & iEvent, edm::EventSetup const& iS
 
 }
 
+bool isAnomalousTower(reco::CandidatePtr input)
+{
+  if (!makeCaloJet(jetTypeE)) return false;
+  const CaloTower* tower=dynamic_cast<const CaloTower*>(input.get());
+  if (0==tower) return false;
+  if (tower->numBadEcalCells()        >maxBadEcalCells_        ||
+      tower->numRecoveredEcalCells()  >maxRecoveredEcalCells_  ||
+      tower->numProblematicEcalCells()>maxProblematicEcalCells_||
+      tower->numBadHcalCells()        >maxBadHcalCells_        ||
+      tower->numRecoveredHcalCells()  >maxRecoveredHcalCells_  ||
+      tower->numProblematicHcalCells()>maxProblematicHcalCells_) return true;
+  return false;
+}
+
+ 
+ 
+void inputTowers(){
+  
+  std::vector<edm::Ptr<reco::Candidate> >::const_iterator inBegin = inputs_.begin(),
+    inEnd = inputs_.end(), i = inBegin;
+  for (; i != inEnd; ++i ) {
+    reco::CandidatePtr input = *i;
+    //if (isnan(input->pt()))           continue;
+    if (std::isnan(input->pt()))           continue;
+    if (input->et()    <inputEtMin_)  continue;
+    if (input->energy()<inputEMin_)   continue;
+    //if (isAnomalousTower(input))      continue;
+    
+    //Check consistency of kinematics
+    const CaloTower* ctc = dynamic_cast<const CaloTower*>(input.get());
+    if(ctc){
+      int ieta = ctc->id().ieta();
+      int iphi = ctc->id().iphi();
+      
+      if(0 && ntuple)ntuple->Fill(ieta, input->eta(), iphi, input->phi(),input->et(),ctc->emEt(),ctc->hadEt());
+      
+      if(abs(ieta) < 5){
+	
+	if(0){
+	  math::RhoEtaPhiVector v(1.4,input->eta(),input->phi());
+	  GlobalPoint point(v.x(),v.y(),v.z());
+	  //	  const DetId d = geo->getClosestCell(point);
+	  //	  HcalDetId hd(d);
+	  HcalDetId hd(0);
+	  if(hd.ieta() != ieta || hd.iphi() != iphi){
+	    cout<<"Inconsistent kinematics!!!   ET = "<<input->pt()<<endl;
+	    cout<<"ieta candidate : "<<ieta<<" ieta detid : "<<hd.ieta()<<endl;
+	    cout<<"iphi candidate : "<<iphi<<" iphi detid : "<<hd.iphi()<<endl;
+	  }
+	  
+	}
+	
+	if(0){
+	  HcalDetId det(HcalBarrel,ieta,iphi,1);
+	  
+	  if(geo->present(det)){
+	    double eta = geo->getPosition(det).eta();
+	    double phi = geo->getPosition(det).phi();
+	    
+	    if(input->eta() != eta || input->phi() != phi){
+	      cout<<"Inconsistent kinematics!!!   ET = "<<input->pt()<<endl;
+	      cout<<"eta candidate : "<<input->eta()<<" eta detid : "<<eta<<endl;
+	      cout<<"phi candidate : "<<input->phi()<<" phi detid : "<<phi<<endl;
+	    }
+	  }else{
+	    cout<<"DetId not present in the Calo Geometry : ieta = "<<ieta<<" iphi = "<<iphi<<endl;
+	  }
+	}
+      }
+      
+    }
+    
+    if (makeCaloJet(jetTypeE)&&doPVCorrection_) {
+      const CaloTower* tower=dynamic_cast<const CaloTower*>(input.get());
+      math::PtEtaPhiMLorentzVector ct(tower->p4(vertex_));
+      fjInputs_.push_back(fastjet::PseudoJet(ct.px(),ct.py(),ct.pz(),ct.energy()));
+    }
+    else {
+      fjInputs_.push_back(fastjet::PseudoJet(input->px(),input->py(),input->pz(),
+					     input->energy()));
+    }
+    fjInputs_.back().set_user_index(i - inBegin);
+  }
+  
+  if ( restrictInputs_ && fjInputs_.size() > maxInputs_ ) {
+    reco::helper::GreaterByPtPseudoJet   pTComparator;
+    std::sort(fjInputs_.begin(), fjInputs_.end(), pTComparator);
+    fjInputs_.resize(maxInputs_);
+    edm::LogWarning("JetRecoTooManyEntries") << "Too many inputs in the event, limiting to first " << maxInputs_ << ". Output is suspect.";
+  }
+}
+
+
 template< typename T >
 void JetAlgorithmAnalyzer::writeBkgJets( edm::Event & iEvent, edm::EventSetup const& iSetup )
 {
   // produce output jet collection
 
-  //  cout<<"Started the Random Cones"<<endl;
+  cout<<"Started the Random Cones"<<endl;
 
 
   using namespace reco;
@@ -619,8 +741,8 @@ void JetAlgorithmAnalyzer::writeBkgJets( edm::Event & iEvent, edm::EventSetup co
   vector<double> rawJetPt;
   vector<double> dr;
   vector<bool> matched;
-
-
+  
+  
   std::auto_ptr<std::vector<bool> > directions(new std::vector<bool>());
   directions->reserve(nFill_);
 
@@ -647,6 +769,8 @@ void JetAlgorithmAnalyzer::writeBkgJets( edm::Event & iEvent, edm::EventSetup co
 
   fjFakeJets_.reserve(nFill_);
   constituents_.reserve(nFill_);
+
+  cout<<"ijet size = "<<nFill_<<endl;;
 
   for(int ijet = 0; ijet < nFill_; ++ijet){
     vector<reco::CandidatePtr> vec;
@@ -717,7 +841,7 @@ void JetAlgorithmAnalyzer::writeBkgJets( edm::Event & iEvent, edm::EventSetup co
 
     }
   }
-  //   cout<<"Start filling jets"<<endl;
+  cout<<"Start filling jets"<<endl;
 
   if(backToBack_){
     int ir = 0;
@@ -789,14 +913,14 @@ void JetAlgorithmAnalyzer::writeBkgJets( edm::Event & iEvent, edm::EventSetup co
     //Float_t entry[100] = {etaRandom[ir],phiRandom[ir],phiRel,et[ir],had[ir],em[ir],pileUp[ir],mean[ir],rms[ir],bin_,hf_,sumET_,iev_,dr[ir],rawJetPt[ir],evtJetPt};
     if(!backToBack_)ntRandom->Fill(entry);
     if(et[ir] < 0){
-      //	 cout<<"Flipping vector"<<endl;
+      cout<<"Flipping vector"<<endl;
       (*directions)[ir] = false;
       et[ir] = -et[ir];
     }else{
-      //         cout<<"Keep vector same"<<endl;
+      cout<<"Keep vector same"<<endl;
       (*directions)[ir] = true;
     }
-    // cout<<"Lorentz"<<endl;
+    cout<<"Lorentz"<<endl;
 
     math::PtEtaPhiMLorentzVector p(et[ir],etaRandom[ir],phiRandom[ir],0);
     fastjet::PseudoJet jet(p.px(),p.py(),p.pz(),p.energy());
@@ -837,6 +961,7 @@ void JetAlgorithmAnalyzer::writeBkgJets( edm::Event & iEvent, edm::EventSetup co
     jets->push_back(jet);
   }
 
+  //why is this commented?
   // put the jets in the collection
   //   iEvent.put(jets,"randomCones");
   //   iEvent.put(directions,"directions");
