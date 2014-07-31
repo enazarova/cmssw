@@ -434,7 +434,6 @@ void JetAlgorithmAnalyzer::fillNtuple(int output, const  std::vector<fastjet::Ps
   }
 }
 
-
 void JetAlgorithmAnalyzer::fillTowerNtuple(const  std::vector<fastjet::PseudoJet>& jets, int step){
   fillNtuple(0,jets,step);
   fillNtuple(2,jets,step);
@@ -442,13 +441,16 @@ void JetAlgorithmAnalyzer::fillTowerNtuple(const  std::vector<fastjet::PseudoJet
 
 void JetAlgorithmAnalyzer::fillJetNtuple(const  std::vector<fastjet::PseudoJet>& jets, int step){
   fillNtuple(1,jets,step);
-  cout<<"passed fill jets"<<endl;
+  //cout<<"passed fill jets"<<endl;
   for(unsigned int i = 0; i < jets.size(); ++i){
     const fastjet::PseudoJet& jet = jets[i];
-    cout<<"i = "<<i<<endl;
-    cout<<"jet pt = "<<jet.perp()<<endl;
+    //cout<<"i = "<<i<<endl;
+    //cout<<"jet pt = "<<jet.perp()<<endl;
+    //cout<<"jet.cluster_hist_index() = "<<jet.cluster_hist_index()<<endl;
+    //cout<<"fjClusterSeq_->history().size() = "<<fjClusterSeq_->history().size()<<endl; //1028
+    if(jet.cluster_hist_index()>=1028) continue;
     std::vector<fastjet::PseudoJet> fjConstituents = sorted_by_pt(fjClusterSeq_->constituents(jet));
-    cout<<"fjConstituents.size() = "<<fjConstituents.size()<<endl;
+    //cout<<"fjConstituents.size() = "<<fjConstituents.size()<<endl;
     fillNtuple(3,fjConstituents,step);
   }
 }
@@ -505,11 +507,11 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   sumET_ = centrality_->raw()->Ntracks();
   bin_ = centrality_->getBin();
 
-  cout<<("VirtualJetProducer") << " Entered produce\n";
+  //cout<<("VirtualJetProducer") << " Entered produce\n";
   //determine signal vertex
   vertex_=reco::Jet::Point(0,0,0);
   if (makeCaloJet(jetTypeE)&&doPVCorrection_) {
-    cout<<("VirtualJetProducer") << " Adding PV info\n";
+    //cout<<("VirtualJetProducer") << " Adding PV info\n";
     edm::Handle<reco::VertexCollection> pvCollection;
     iEvent.getByLabel(srcPVs_,pvCollection);
     if (pvCollection->size()>0) vertex_=pvCollection->begin()->position();
@@ -518,12 +520,12 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   // For Pileup subtraction using offset correction:
   // set up geometry map
   if ( doPUOffsetCorr_ ) {
-    cout<<"setting up ... "<<endl;
+    //cout<<"setting up ... "<<endl;
     subtractor_->setupGeometryMap(iEvent, iSetup);
   }
 
   // clear data
-  cout<<("VirtualJetProducer") << " Clear data\n";
+  //cout<<("VirtualJetProducer") << " Clear data\n";
   fjInputs_.clear();
   fjJets_.clear();
   inputs_.clear();
@@ -540,13 +542,13 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   for (size_t i = 0; i < inputsHandle->size(); ++i) {
     inputs_.push_back(inputsHandle->ptrAt(i));
   }
-  cout<<("VirtualJetProducer") << " Got inputs\n";
+  //cout<<("VirtualJetProducer") << " Got inputs\n";
 
   // Convert candidates to fastjet::PseudoJets.
   // Also correct to Primary Vertex. Will modify fjInputs_
   // and use inputs_
   fjInputs_.reserve(inputs_.size());
-  cout<< "Inputted towers = "<<inputs_.size()<<endl;
+  //cout<< "Inputted towers = "<<inputs_.size()<<endl;
 
   inputTowers_test();
 
@@ -557,7 +559,7 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   //reco::CandidatePtr input_test2 = *(i+1);
   //cout<<input_test2->px()<<" "<<input_test2->py()<<" "<<input_test2->pz()<<" "<<input_test2->energy()<<endl;
   
-  cout<<("VirtualJetProducer") << " finished inputTowers " <<endl;
+  //cout<<("VirtualJetProducer") << " finished inputTowers " <<endl;
   
   //cout<<"size of the fjInputs_ after inputTowers = "<<fjInputs_.size()<<endl;
 
@@ -579,7 +581,7 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
     fillTowerNtuple(fjInputs_,2);
     fillBkgNtuple(subtractor_.get(),2);
 
-    cout<<("VirtualJetProducer") << "Subtracted pedestal\n";
+    //cout<<("VirtualJetProducer") << "Subtracted pedestal\n";
   }
 
   // Run algorithm. Will modify fjJets_ and allocate fjClusterSeq_.
@@ -595,7 +597,7 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   //      subtractor_->setAlgorithm(fjClusterSeq_);
   //   }
 
-  cout<<("VirtualJetProducer") << "Ran algorithm\n";
+  //cout<<("VirtualJetProducer") << "Ran algorithm\n";
 
   // For Pileup subtraction using offset correction:
   // Now we find jets and need to recalculate their energy,
@@ -632,7 +634,7 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   //following line was commented out, need to check the output
   fillJetNtuple(fjJets_,7);
 
-  cout<<("VirtualJetProducer") << "Wrote jets\n";
+  //cout<<("VirtualJetProducer") << "Wrote jets\n";
 
   ++iev_;
 
@@ -645,7 +647,7 @@ void JetAlgorithmAnalyzer::output(edm::Event & iEvent, edm::EventSetup const& iS
   // Write jets and constitutents. Will use fjJets_, inputs_
   // and fjClusterSeq_
 
-  cout<<"output running "<<endl;
+  //cout<<"output running "<<endl;
   //  return;
 
   switch( jetTypeE ) {
@@ -792,7 +794,7 @@ void JetAlgorithmAnalyzer::writeBkgJets( edm::Event & iEvent, edm::EventSetup co
 {
   // produce output jet collection
 
-  cout<<"Started the Random Cones"<<endl;
+  //cout<<"Started the Random Cones"<<endl;
 
 
   using namespace reco;
@@ -910,7 +912,7 @@ void JetAlgorithmAnalyzer::writeBkgJets( edm::Event & iEvent, edm::EventSetup co
 
     }
   }
-  cout<<"Start filling jets"<<endl;
+  //cout<<"Start filling jets"<<endl;
 
   if(backToBack_){
     int ir = 0;
@@ -989,7 +991,7 @@ void JetAlgorithmAnalyzer::writeBkgJets( edm::Event & iEvent, edm::EventSetup co
       cout<<"Keep vector same"<<endl;
       (*directions)[ir] = true;
     }
-    cout<<"Lorentz"<<endl;
+    //cout<<"Lorentz"<<endl;
 
     math::PtEtaPhiMLorentzVector p(et[ir],etaRandom[ir],phiRandom[ir],0);
     fastjet::PseudoJet jet(p.px(),p.py(),p.pz(),p.energy());
