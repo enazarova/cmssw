@@ -321,30 +321,31 @@ JetAlgorithmAnalyzer::~JetAlgorithmAnalyzer()
 void JetAlgorithmAnalyzer::fillNtuple(int output, const  std::vector<fastjet::PseudoJet>& jets, int step){
   if(!doAnalysis_) return;
 
-  TNtuple* nt;
-  TH2D* h;
+  //TNtuple* nt;
+  //TH2D* h;
 
+  /*
   if(output == 1){
-    nt = ntJets;
+    //nt = ntJets;
     h = hJets[step];
   }
   if(output == 0){
-    nt = ntTowers;
+    //nt = ntTowers;
     h = hTowers[step];
   }
   if(output == 2){
-    nt = ntTowersFromEvtPlane;
+    //nt = ntTowersFromEvtPlane;
     h = hTowersFromEvtPlane[step];
   }
   if(output == 3){
-    nt = ntJetTowers;
+    //nt = ntJetTowers;
     h = hJetTowers[step];
   }
   else{
-    nt = 0;
+    //nt = 0;
     h = 0;
   }
-
+  */
   int printDebug = 1;
 
   double totet = 0;
@@ -361,7 +362,7 @@ void JetAlgorithmAnalyzer::fillNtuple(int output, const  std::vector<fastjet::Ps
     const fastjet::PseudoJet& jet = jets[i];
 
     double pt = jet.perp();
-    cout<<pt<<endl;
+    cout<<"pt = "<<pt<<endl;
     int ieta = -99;
 
     cout<<"passed 0"<<endl;
@@ -381,6 +382,7 @@ void JetAlgorithmAnalyzer::fillNtuple(int output, const  std::vector<fastjet::Ps
     cout<<"passed 2"<<endl;
 
     double phi = jet.phi();
+    cout<<"phi = "<<phi<<endl;
     if(output == 2){
       phi = phi - phi0_;
       if(phi < 0) phi += 2*PI;
@@ -390,6 +392,7 @@ void JetAlgorithmAnalyzer::fillNtuple(int output, const  std::vector<fastjet::Ps
     cout<<"passed 3"<<endl;
 
     double eta = jet.eta();
+    cout<<"eta = "<<eta<<endl;
     if(eta > 0 && eta < 0.08){
       //     if(fabs(eta) < 1.){
       totet += pt;
@@ -397,10 +400,29 @@ void JetAlgorithmAnalyzer::fillNtuple(int output, const  std::vector<fastjet::Ps
     }
 
     cout<<"passed 4"<<endl;
+    cout<<"iev_ = "<<iev_<<endl;
+    //nt->Fill(eta,phi,pt,step,iev_);
 
-    nt->Fill(jet.eta(),phi,pt,step,iev_);
-    h->Fill(jet.eta(),phi,pt);
-
+    if(output == 1){
+      ntJets->Fill(eta,phi,pt,step,iev_);
+      hJets[step]->Fill(eta,phi,pt);
+    }
+    if(output == 0){
+      ntTowers->Fill(eta,phi,pt,step,iev_);
+      hTowers[step]->Fill(eta,phi,pt);
+    }
+    if(output == 2){
+      ntTowersFromEvtPlane->Fill(eta,phi,pt,step,iev_);
+      hTowersFromEvtPlane[step]->Fill(eta,phi,pt);
+    }
+    if(output == 3){
+      ntJetTowers->Fill(eta,phi,pt,step,iev_);
+      hJetTowers[step]->Fill(eta,phi,pt);
+    }
+    
+    cout<<"passed 5"<<endl;
+    //h->Fill(eta,phi,pt);
+    //cout<<"passed 6"<<endl;
   }
   if(printDebug == 1){
     cout<<"-----------------------------"<<endl;
@@ -521,16 +543,18 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   // Also correct to Primary Vertex. Will modify fjInputs_
   // and use inputs_
   fjInputs_.reserve(inputs_.size());
-  //inputTowers_test();
+  cout<< "Inputted towers = "<<inputs_.size()<<endl;
 
-  std::vector<edm::Ptr<reco::Candidate> >::const_iterator inBegin = inputs_.begin(),
-    inEnd = inputs_.end(), i = inBegin;
-  reco::CandidatePtr input_test = *i;
-  cout<<input_test->px()<<" "<<input_test->py()<<" "<<input_test->pz()<<" "<<input_test->energy()<<endl;
-  reco::CandidatePtr input_test2 = *(i+1);
-  cout<<input_test2->px()<<" "<<input_test2->py()<<" "<<input_test2->pz()<<" "<<input_test2->energy()<<endl;
+  inputTowers_test();
+
+
+  //std::vector<edm::Ptr<reco::Candidate> >::const_iterator inBegin = inputs_.begin(),inEnd = inputs_.end(), i = inBegin;
+  //reco::CandidatePtr input_test = *i;
+  //cout<<input_test->px()<<" "<<input_test->py()<<" "<<input_test->pz()<<" "<<input_test->energy()<<endl;
+  //reco::CandidatePtr input_test2 = *(i+1);
+  //cout<<input_test2->px()<<" "<<input_test2->py()<<" "<<input_test2->pz()<<" "<<input_test2->energy()<<endl;
   
-  cout<<("VirtualJetProducer") << "Inputted towers = "<<inputs_.size()<<endl;
+  cout<<("VirtualJetProducer") << " finished inputTowers " <<endl;
   
   //cout<<"size of the fjInputs_ after inputTowers = "<<fjInputs_.size()<<endl;
 
@@ -668,18 +692,25 @@ void JetAlgorithmAnalyzer::inputTowers_test(){
   cout<<"inside inputTowers_test"<<endl;
   std::vector<edm::Ptr<reco::Candidate> >::const_iterator inBegin = inputs_.begin(),
     inEnd = inputs_.end(), i = inBegin;
+  int counter = 0;
   for(;i!=inEnd;++i){
+    cout<<"start of for loop counter = "<<counter<<endl;
+    counter++;
     reco::CandidatePtr input = *i;
     if (std::isnan(input->pt()))           continue;
     if (input->et()    <inputEtMin_)  continue;
     if (input->energy()<inputEMin_)   continue;
     if (isAnomalousTower_test(input))      continue;
 
+    cout<<"passed A"<<endl;
+
     if (input->pt() == 0) {
       edm::LogError("NullTransverseMomentum") << "dropping input candidate with pt=0";
       continue;
     }
     
+    cout<<"passed B"<<endl;
+
     /*
     //Check consistency of kinematics
     const CaloTower* ctc = dynamic_cast<const CaloTower*>(input.get());
@@ -727,6 +758,7 @@ void JetAlgorithmAnalyzer::inputTowers_test(){
       
     }
     */
+
     if (makeCaloJet(jetTypeE)&&doPVCorrection_) {
       const CaloTower* tower=dynamic_cast<const CaloTower*>(input.get());
       math::PtEtaPhiMLorentzVector ct(tower->p4(vertex_));
@@ -737,7 +769,7 @@ void JetAlgorithmAnalyzer::inputTowers_test(){
 					     input->energy()));
     }
     fjInputs_.back().set_user_index(i - inBegin);
-    i = i+1;
+    //i = i+1;
     //cout<<"loop counting index = "<<i<<endl;
   }
 
