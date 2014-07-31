@@ -445,8 +445,10 @@ void JetAlgorithmAnalyzer::fillJetNtuple(const  std::vector<fastjet::PseudoJet>&
   cout<<"passed fill jets"<<endl;
   for(unsigned int i = 0; i < jets.size(); ++i){
     const fastjet::PseudoJet& jet = jets[i];
+    cout<<"i = "<<i<<endl;
+    cout<<"jet pt = "<<jet.perp()<<endl;
     std::vector<fastjet::PseudoJet> fjConstituents = sorted_by_pt(fjClusterSeq_->constituents(jet));
-    cout<<"inside jet loop filling up jet constituents"<<endl;
+    cout<<"fjConstituents.size() = "<<fjConstituents.size()<<endl;
     fillNtuple(3,fjConstituents,step);
   }
 }
