@@ -49,6 +49,8 @@ protected:
   void fillTowerNtuple(const  std::vector<fastjet::PseudoJet>& jets, int step);
   void fillJetNtuple(const  std::vector<fastjet::PseudoJet>& jets, int step);
   void fillBkgNtuple(const PileUpSubtractor* subtractor, int step);
+  void inputTowers_test();
+  bool isAnomalousTower_test(reco::CandidatePtr input);
 
 private:
 
@@ -201,14 +203,24 @@ CLHEP::HepRandomEngine* randomEngine;
 
 //______________________________________________________________________________
 JetAlgorithmAnalyzer::JetAlgorithmAnalyzer(const edm::ParameterSet& iConfig)
-  : MyVirtualJetProducer( iConfig ),
-    phi0_(0),
-    nFill_(5),
-    etaMax_(3),
-    iev_(0),
-    cone_(1),
-    geo(0),
-    centrality_(0)
+  : MyVirtualJetProducer( iConfig )
+  , phi0_(0)
+  , nFill_(5)
+  , etaMax_(3)
+  , iev_(0)
+  , cone_(1)
+  , geo(0)
+  , centrality_(0)
+  
+					  //, jetType_       (iConfig.getParameter<string>       ("jetType"))
+  
+					  //, maxBadEcalCells_        (iConfig.getParameter<unsigned>("maxBadEcalCells"))
+					  //, maxRecoveredEcalCells_  (iConfig.getParameter<unsigned>("maxRecoveredEcalCells"))
+					  //, maxProblematicEcalCells_(iConfig.getParameter<unsigned>("maxProblematicEcalCells"))
+					  //, maxBadHcalCells_        (iConfig.getParameter<unsigned>("maxBadHcalCells"))
+					  //, maxRecoveredHcalCells_  (iConfig.getParameter<unsigned>("maxRecoveredHcalCells"))
+					  //, maxProblematicHcalCells_(iConfig.getParameter<unsigned>("maxProblematicHcalCells"))
+
 {
 
   doAreaFastjet_ = false;
@@ -227,6 +239,8 @@ JetAlgorithmAnalyzer::JetAlgorithmAnalyzer(const edm::ParameterSet& iConfig)
   if(backToBack_) nFill_ = 2;
 
   doFullCone_  = iConfig.getUntrackedParameter<bool>("doFullCone",true);
+
+  //jetTypeE=JetTyle::byName(jetType_);
 
   doMC_  = iConfig.getUntrackedParameter<bool>("doMC",true);
   doRecoEvtPlane_  = iConfig.getUntrackedParameter<bool>("doRecoEvtPlane",true);
@@ -507,8 +521,18 @@ void JetAlgorithmAnalyzer::produce(edm::Event& iEvent,const edm::EventSetup& iSe
   // Also correct to Primary Vertex. Will modify fjInputs_
   // and use inputs_
   fjInputs_.reserve(inputs_.size());
-  inputTowers();
-  cout<<("VirtualJetProducer") << "Inputted towers = "<<inputs_.size()<<" (which is not doing anything - WHY)\n";
+  //inputTowers_test();
+
+  std::vector<edm::Ptr<reco::Candidate> >::const_iterator inBegin = inputs_.begin(),
+    inEnd = inputs_.end(), i = inBegin;
+  reco::CandidatePtr input_test = *i;
+  cout<<input_test->px()<<" "<<input_test->py()<<" "<<input_test->pz()<<" "<<input_test->energy()<<endl;
+  reco::CandidatePtr input_test2 = *(i+1);
+  cout<<input_test2->px()<<" "<<input_test2->py()<<" "<<input_test2->pz()<<" "<<input_test2->energy()<<endl;
+  
+  cout<<("VirtualJetProducer") << "Inputted towers = "<<inputs_.size()<<endl;
+  
+  //cout<<"size of the fjInputs_ after inputTowers = "<<fjInputs_.size()<<endl;
 
   fillTowerNtuple(fjInputs_,0);
   fillBkgNtuple(subtractor_.get(),0);
@@ -625,7 +649,7 @@ void JetAlgorithmAnalyzer::output(edm::Event & iEvent, edm::EventSetup const& iS
 
 }
 
-bool isAnomalousTower(reco::CandidatePtr input)
+bool JetAlgorithmAnalyzer::isAnomalousTower_test(reco::CandidatePtr input)
 {
   if (!makeCaloJet(jetTypeE)) return false;
   const CaloTower* tower=dynamic_cast<const CaloTower*>(input.get());
@@ -639,64 +663,70 @@ bool isAnomalousTower(reco::CandidatePtr input)
   return false;
 }
 
- 
- 
-void inputTowers(){
-  
+
+void JetAlgorithmAnalyzer::inputTowers_test(){
+  cout<<"inside inputTowers_test"<<endl;
   std::vector<edm::Ptr<reco::Candidate> >::const_iterator inBegin = inputs_.begin(),
     inEnd = inputs_.end(), i = inBegin;
-  for (; i != inEnd; ++i ) {
+  for(;i!=inEnd;++i){
     reco::CandidatePtr input = *i;
-    //if (isnan(input->pt()))           continue;
     if (std::isnan(input->pt()))           continue;
     if (input->et()    <inputEtMin_)  continue;
     if (input->energy()<inputEMin_)   continue;
-    //if (isAnomalousTower(input))      continue;
+    if (isAnomalousTower_test(input))      continue;
+
+    if (input->pt() == 0) {
+      edm::LogError("NullTransverseMomentum") << "dropping input candidate with pt=0";
+      continue;
+    }
     
+    /*
     //Check consistency of kinematics
     const CaloTower* ctc = dynamic_cast<const CaloTower*>(input.get());
     if(ctc){
       int ieta = ctc->id().ieta();
       int iphi = ctc->id().iphi();
       
-      if(0 && ntuple)ntuple->Fill(ieta, input->eta(), iphi, input->phi(),input->et(),ctc->emEt(),ctc->hadEt());
+      //raghav - july 30 2014, going to remove all the if(0) stiff since it wont run at all.
+      //for the following it was if(0&&ntuple), next outside the eta<5 and hcaldet, it was if(0) 
+
+      ntuple->Fill(ieta, input->eta(), iphi, input->phi(),input->et(),ctc->emEt(),ctc->hadEt());
       
       if(abs(ieta) < 5){
 	
-	if(0){
-	  math::RhoEtaPhiVector v(1.4,input->eta(),input->phi());
-	  GlobalPoint point(v.x(),v.y(),v.z());
-	  //	  const DetId d = geo->getClosestCell(point);
-	  //	  HcalDetId hd(d);
-	  HcalDetId hd(0);
-	  if(hd.ieta() != ieta || hd.iphi() != iphi){
-	    cout<<"Inconsistent kinematics!!!   ET = "<<input->pt()<<endl;
-	    cout<<"ieta candidate : "<<ieta<<" ieta detid : "<<hd.ieta()<<endl;
-	    cout<<"iphi candidate : "<<iphi<<" iphi detid : "<<hd.iphi()<<endl;
-	  }
-	  
+	math::RhoEtaPhiVector v(1.4,input->eta(),input->phi());
+	GlobalPoint point(v.x(),v.y(),v.z());
+	//	  const DetId d = geo->getClosestCell(point);
+	//	  HcalDetId hd(d);
+	HcalDetId hd(0);
+	if(hd.ieta() != ieta || hd.iphi() != iphi){
+	  cout<<"Inconsistent kinematics!!!   ET = "<<input->pt()<<endl;
+	  cout<<"ieta candidate : "<<ieta<<" ieta detid : "<<hd.ieta()<<endl;
+	  cout<<"iphi candidate : "<<iphi<<" iphi detid : "<<hd.iphi()<<endl;
 	}
 	
-	if(0){
-	  HcalDetId det(HcalBarrel,ieta,iphi,1);
+	
+	
+	
+	HcalDetId det(HcalBarrel,ieta,iphi,1);
+	
+	if(geo->present(det)){
+	  double eta = geo->getPosition(det).eta();
+	  double phi = geo->getPosition(det).phi();
 	  
-	  if(geo->present(det)){
-	    double eta = geo->getPosition(det).eta();
-	    double phi = geo->getPosition(det).phi();
-	    
-	    if(input->eta() != eta || input->phi() != phi){
-	      cout<<"Inconsistent kinematics!!!   ET = "<<input->pt()<<endl;
-	      cout<<"eta candidate : "<<input->eta()<<" eta detid : "<<eta<<endl;
-	      cout<<"phi candidate : "<<input->phi()<<" phi detid : "<<phi<<endl;
-	    }
-	  }else{
-	    cout<<"DetId not present in the Calo Geometry : ieta = "<<ieta<<" iphi = "<<iphi<<endl;
+	  if(input->eta() != eta || input->phi() != phi){
+	    cout<<"Inconsistent kinematics!!!   ET = "<<input->pt()<<endl;
+	    cout<<"eta candidate : "<<input->eta()<<" eta detid : "<<eta<<endl;
+	    cout<<"phi candidate : "<<input->phi()<<" phi detid : "<<phi<<endl;
 	  }
+	}else{
+	  cout<<"DetId not present in the Calo Geometry : ieta = "<<ieta<<" iphi = "<<iphi<<endl;
 	}
+	
       }
       
     }
-    
+    */
     if (makeCaloJet(jetTypeE)&&doPVCorrection_) {
       const CaloTower* tower=dynamic_cast<const CaloTower*>(input.get());
       math::PtEtaPhiMLorentzVector ct(tower->p4(vertex_));
@@ -707,7 +737,11 @@ void inputTowers(){
 					     input->energy()));
     }
     fjInputs_.back().set_user_index(i - inBegin);
+    i = i+1;
+    //cout<<"loop counting index = "<<i<<endl;
   }
+
+  cout<<"size of the fjInputs_ during inputTowers = "<<fjInputs_.size()<<endl;
   
   if ( restrictInputs_ && fjInputs_.size() > maxInputs_ ) {
     reco::helper::GreaterByPtPseudoJet   pTComparator;
