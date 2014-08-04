@@ -44,6 +44,7 @@ vector<int> matchTpToGen(const edm::Event& iEvent, const TrackingParticle* tpart
         const HepMC::GenParticle* temp = igen->get();
         tempStore.push_back(*temp); //temp->momentum().px()*temp->momentum().py()*temp->momentum().pz(); //store HepMC barcode for unique id
     }
+    if(tempStore.size()==0){ retArr.push_back(-999); return retArr; }
 
     //now figure out the array number of the associated genParticles
     bool *tripwire = new bool[tempStore.size()];
