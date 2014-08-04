@@ -55,7 +55,6 @@
 // root include file
 #include "TFile.h"
 #include "TNtuple.h"
-#include "TMath.h"
 
 using namespace std;
 
@@ -88,11 +87,6 @@ struct HydjetEvent{
   Int_t chg[MAXPARTICLES];
   Int_t sube[MAXPARTICLES];
   Int_t sta[MAXPARTICLES];
-  Int_t matchingID[MAXPARTICLES];
-  Int_t nMothers[MAXPARTICLES];
-  Int_t motherIndex[MAXPARTICLES][200];
-  Int_t nDaughters[MAXPARTICLES];
-  Int_t daughterIndex[MAXPARTICLES][200];
 
   Float_t vx;
   Float_t vy;
@@ -112,8 +106,6 @@ private:
   virtual void beginJob() ;
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
   virtual void endJob() ;
-  vector<int> getMotherIdx(edm::Handle<reco::GenParticleCollection> parts, const reco::GenParticle);
-  vector<int> getDaughterIdx(edm::Handle<reco::GenParticleCollection> parts, const reco::GenParticle);
 
   // ----------member data ---------------------------
 
@@ -141,7 +133,6 @@ private:
   Bool_t useHepMCProduct_;
   Bool_t doHI_;
   Bool_t doParticles_;
-  std::vector<int> motherDaughterPDGsToSave_;
 
   Double_t etaMax_;
   Double_t ptMin_;
@@ -188,8 +179,6 @@ HiGenAnalyzer::HiGenAnalyzer(const edm::ParameterSet& iConfig)
   genParticleSrc_ = iConfig.getUntrackedParameter<edm::InputTag>("genpSrc",edm::InputTag("hiGenParticles"));
   genHIsrc_ = iConfig.getUntrackedParameter<edm::InputTag>("genHiSrc",edm::InputTag("heavyIon"));
   doParticles_ = iConfig.getUntrackedParameter<Bool_t>("doParticles", true);
-  vector<int> defaultPDGs;
-  motherDaughterPDGsToSave_ = iConfig.getUntrackedParameter<std::vector<int> >("motherDaughterPDGsToSave",defaultPDGs);
 }
 
 
@@ -204,7 +193,6 @@ HiGenAnalyzer::~HiGenAnalyzer()
 //
 // member functions
 //
-
 vector<int> HiGenAnalyzer::getMotherIdx(edm::Handle<reco::GenParticleCollection> parts, const reco::GenParticle pin){
     
     vector<int> motherArr;
@@ -220,7 +208,6 @@ vector<int> HiGenAnalyzer::getMotherIdx(edm::Handle<reco::GenParticleCollection>
         if(motherDaughterPDGsToSave_.size()>0 && saveFlag!=true) continue; //save all particles in vector unless vector is empty, then save all particles
         if (p.status()==3) continue; //don't match to the initial collision particles
         for (unsigned int idx=0; idx<p.numberOfDaughters(); idx++){
-            //if (p.daughter(idx)->pt()*p.daughter(idx)->eta()*p.daughter(idx)->phi() == pin.pt()*pin.eta()*pin.phi()) motherArr.push_back(i);
             if(fabs(p.daughter(idx)->pt()-pin.pt())<0.001 && fabs(p.daughter(idx)->eta()-pin.eta())<0.001 && fabs(p.daughter(idx)->phi()-pin.phi())<0.001) motherArr.push_back(i);
         }
     }
@@ -245,7 +232,6 @@ vector<int> HiGenAnalyzer::getDaughterIdx(edm::Handle<reco::GenParticleCollectio
         if(motherDaughterPDGsToSave_.size()>0 && saveFlag!=true) continue; //save all particles in vector unless vector is empty, then save all particles
         if (p.status()==3) continue; //don't match to the initial collision particles
         for(unsigned int idx=0; idx<p.numberOfMothers(); idx++){
-            //if (p.mother(idx)->pt()*p.mother(idx)->eta()*p.mother(idx)->phi() == pin.pt()*pin.eta()*pin.phi()) daughterArr.push_back(i);
             if(fabs(p.mother(idx)->pt()-pin.pt())<0.001 && fabs(p.mother(idx)->eta()-pin.eta())<0.001 && fabs(p.mother(idx)->phi()-pin.phi())<0.001) daughterArr.push_back(i); 
         }
     }
@@ -290,6 +276,7 @@ HiGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       iEvent.getByLabel(InputTag("mix","source"),cf);
       MixCollection<HepMCProduct> mix(cf.product());
       nmix = mix.size();
+      cout<<"Mix Collection Size: "<<mix<<endl;
 
       MixCollection<HepMCProduct>::iterator mbegin = mix.begin();
       MixCollection<HepMCProduct>::iterator mend = mix.end();
@@ -300,10 +287,8 @@ HiGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	np += all;
 	HepMC::GenEvent::particle_const_iterator begin = subevt->particles_begin();
 	HepMC::GenEvent::particle_const_iterator end = subevt->particles_end();
-        int nparticles=-1;
 	for(HepMC::GenEvent::particle_const_iterator it = begin; it != end; ++it){
-	  nparticles++;
-          if ((*it)->momentum().perp()<ptMin_) continue;
+	  if ((*it)->momentum().perp()<ptMin_) continue;
 	  //	  if((*it)->status() == 1){
 	  Int_t pdg_id = (*it)->pdg_id();
 	  Float_t eta = (*it)->momentum().eta();
@@ -319,8 +304,7 @@ HiGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	  hev_.pdg[hev_.mult] = pdg_id;
 	  hev_.chg[hev_.mult] = charge;
 	  hev_.sta[hev_.mult] = (*it)->status();
-	  hev_.matchingID[hev_.mult] = nparticles;
-          eta = fabs(eta);
+	  eta = fabs(eta);
 	  Int_t etabin = 0;
 	  if(eta > 0.5) etabin = 1;
 	  if(eta > 1.) etabin = 2;
@@ -357,10 +341,8 @@ HiGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
       HepMC::GenEvent::particle_const_iterator begin = evt->particles_begin();
       HepMC::GenEvent::particle_const_iterator end = evt->particles_end();
-      int nparticles=-1;
       for(HepMC::GenEvent::particle_const_iterator it = begin; it != end; ++it){
-	nparticles++;
-        if ((*it)->momentum().perp()<ptMin_) continue;
+	if ((*it)->momentum().perp()<ptMin_) continue;
 	//	if((*it)->status() == 1){
 	Int_t pdg_id = (*it)->pdg_id();
 	Float_t eta = (*it)->momentum().eta();
@@ -376,7 +358,6 @@ HiGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	hev_.pdg[hev_.mult] = pdg_id;
 	hev_.chg[hev_.mult] = charge;
 	hev_.sta[hev_.mult] = (*it)->status();
-        hev_.matchingID[hev_.mult] = nparticles;
 
 	eta = fabs(eta);
 	Int_t etabin = 0;
@@ -390,10 +371,13 @@ HiGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	if(hev_.mult >= MAXPARTICLES)
 	  edm::LogError("Number of genparticles exceeds array bounds.");
       }
-      }
-    }else{
+    }
+  }else{
     edm::Handle<reco::GenParticleCollection> parts;
     iEvent.getByLabel(genParticleSrc_,parts);
+
+    if(! parts.isValid() ) throw cms::Exception("FatalError") << "genparticle collection not found\n";
+
     for(UInt_t i = 0; i < parts->size(); ++i){
       const reco::GenParticle& p = (*parts)[i];
       if (stableOnly_ && p.status()!=1) continue;
@@ -409,17 +393,7 @@ HiGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       hev_.chg[hev_.mult] = p.charge();
       hev_.sube[hev_.mult] = p.collisionId();
       hev_.sta[hev_.mult] = p.status();
-      hev_.matchingID[hev_.mult] = i;
-      hev_.nMothers[hev_.mult] = p.numberOfMothers();
-      vector<int> tempMothers = getMotherIdx(parts, p);
-      for(unsigned int imother=0; imother<tempMothers.size(); imother++){
-          hev_.motherIndex[hev_.mult][imother] = tempMothers.at(imother);
-      }
-      hev_.nDaughters[hev_.mult] = p.numberOfDaughters();
-      vector<int> tempDaughters = getDaughterIdx(parts, p);
-      for(unsigned int idaughter=0; idaughter<tempDaughters.size(); idaughter++){
-          hev_.daughterIndex[hev_.mult][idaughter] = tempDaughters.at(idaughter);
-      }
+
       Double_t eta = fabs(p.eta());
 
       Int_t etabin = 0;
@@ -437,6 +411,8 @@ HiGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       edm::Handle<GenHIEvent> higen;
       iEvent.getByLabel(genHIsrc_,higen);
 
+      if(! higen.isValid() ) throw cms::Exception("FatalError") << "HI event info not found\n";
+
       b = higen->b();
       npart = higen->Npart();
       ncoll = higen->Ncoll();
@@ -451,12 +427,12 @@ HiGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     iEvent.getByType<edm::SimVertexContainer>(simVertices);
 
     if (! simVertices.isValid() ) throw cms::Exception("FatalError") << "No vertices found\n";
-    //Int_t inum = 0;
+    Int_t inum = 0;
 
     edm::SimVertexContainer::const_iterator it=simVertices->begin();
     if(it != simVertices->end()){
       SimVertex vertex = (*it);
-      //cout<<" Vertex position "<< inum <<" " << vertex.position().rho()<<" "<<vertex.position().z()<<endl;
+      cout<<" Vertex position "<< inum <<" " << vertex.position().rho()<<" "<<vertex.position().z()<<endl;
       vx = vertex.position().x();
       vy = vertex.position().y();
       vz = vertex.position().z();
@@ -532,11 +508,6 @@ HiGenAnalyzer::beginJob()
       hydjetTree_->Branch("phi",hev_.phi,"phi[mult]/F");
       hydjetTree_->Branch("pdg",hev_.pdg,"pdg[mult]/I");
       hydjetTree_->Branch("chg",hev_.chg,"chg[mult]/I");
-      hydjetTree_->Branch("matchingID",hev_.matchingID,"matchingID[mult]/I");
-      hydjetTree_->Branch("nMothers",hev_.nMothers,"nMothers[mult]/I");
-      hydjetTree_->Branch("motherIdx",hev_.motherIndex,"motherIdx[mult][200]/I");
-      hydjetTree_->Branch("nDaughters",hev_.nDaughters,"nDaughters[mult]/I");
-      hydjetTree_->Branch("daughterIdx",hev_.daughterIndex,"daughterIdx[mult][200]/I");
       if(!stableOnly_){
 	hydjetTree_->Branch("sta",hev_.sta,"sta[mult]/I");
       }
