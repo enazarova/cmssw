@@ -250,54 +250,6 @@ vector<int> HiGenAnalyzer::getDaughterIdx(edm::Handle<reco::GenParticleCollectio
     return daughterArr;
 }
 
-vector<int> HiGenAnalyzer::getMotherIdx(edm::Handle<reco::GenParticleCollection> parts, const reco::GenParticle pin){
-    
-    vector<int> motherArr;
-    for(UInt_t i = 0; i < parts->size(); ++i){
-        const reco::GenParticle& p = (*parts)[i];
-        if (stableOnly_ && p.status()!=1) continue;
-        if (p.pt()<ptMin_) continue;
-        if (chargedOnly_&&p.charge()==0) continue;
-        bool saveFlag=false;
-        for(unsigned int ipdg=0; ipdg<motherDaughterPDGsToSave_.size(); ipdg++){
-            if(p.pdgId() == motherDaughterPDGsToSave_.at(ipdg)) saveFlag=true;
-        }
-        if(motherDaughterPDGsToSave_.size()>0 && saveFlag!=true) continue; //save all particles in vector unless vector is empty, then save all particles
-        if (p.status()==3) continue; //don't match to the initial collision particles
-        for (unsigned int idx=0; idx<p.numberOfDaughters(); idx++){
-            if (p.daughter(idx)->pt()*p.daughter(idx)->eta()*p.daughter(idx)->phi() == pin.pt()*pin.eta()*pin.phi()) motherArr.push_back(i);
-            //if(p.daughter(idx) == &pin) motherArr.push_back(i);
-        }
-    }
-    if(motherArr.size()==0) motherArr.push_back(-999);
-    return motherArr;
-}
-
-//----------------------------------------------------------
-
-vector<int> HiGenAnalyzer::getDaughterIdx(edm::Handle<reco::GenParticleCollection> parts, const reco::GenParticle pin){
-
-    vector<int> daughterArr;
-    for(UInt_t i = 0; i < parts->size(); ++i){
-        const reco::GenParticle& p = (*parts)[i];
-        if (stableOnly_ && p.status()!=1) continue;
-        if (p.pt()<ptMin_) continue;
-        if (chargedOnly_&&p.charge()==0) continue;
-        bool saveFlag=false;
-        for(unsigned int ipdg=0; ipdg<motherDaughterPDGsToSave_.size(); ipdg++){
-            if(p.pdgId() == motherDaughterPDGsToSave_.at(ipdg)) saveFlag=true;
-        }           
-        if(motherDaughterPDGsToSave_.size()>0 && saveFlag!=true) continue; //save all particles in vector unless vector is empty, then save all particles
-        if (p.status()==3) continue; //don't match to the initial collision particles
-        for(unsigned int idx=0; idx<p.numberOfMothers(); idx++){
-            if (p.mother(idx)->pt()*p.mother(idx)->eta()*p.mother(idx)->phi() == pin.pt()*pin.eta()*pin.phi()) daughterArr.push_back(i);
-            //if(p.mother(idx) == &pin) daughterArr.push_back(i);
-        }
-    }
-    if(daughterArr.size()==0) daughterArr.push_back(-999);
-    return daughterArr;
-}
-
 // ------------ method called to for each event  ------------
 void
 HiGenAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
