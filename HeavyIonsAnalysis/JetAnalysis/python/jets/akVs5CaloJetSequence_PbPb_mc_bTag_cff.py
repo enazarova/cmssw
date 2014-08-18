@@ -11,7 +11,8 @@ akVs5Calomatch = patJetGenJetMatch.clone(
     matched = cms.InputTag("ak5HiGenJetsCleaned")
     )
 
-akVs5Caloparton = patJetPartonMatch.clone(src = cms.InputTag("akVs5CaloJets")
+akVs5Caloparton = patJetPartonMatch.clone(src = cms.InputTag("akVs5CaloJets"),
+                                                        matched = cms.InputTag("")
                                                         )
 
 akVs5Calocorr = patJetCorrFactors.clone(
@@ -206,6 +207,8 @@ akVs5CaloJetSequence_mc = cms.Sequence(
                                                   )
 
 akVs5CaloJetSequence_data = cms.Sequence(akVs5Calocorr
+                                                    *
+                                                    akVs5CaloJetID
                                                     *
                                                     akVs5CaloJetTracksAssociatorAtVertex
                                                     *

@@ -53,6 +53,7 @@ do
                             if [ $system == "pPb" ]; then
                                 corrlabel="_generalTracks"
                                 tracks="generalTracks"
+                                genpartons="hiPartons"
                                 genparticles="hiGenParticles"
                                 pflow="particleFlow"
                             fi
@@ -60,6 +61,7 @@ do
                             if [ $system == "pp" ]; then
                                 corrlabel="_generalTracks"
                                 tracks="generalTracks"
+                                genpartons="genParticles"
                                 genparticles="genParticles"
                                 pflow="particleFlow"
                             fi
@@ -112,6 +114,7 @@ do
                                 | sed "s/MATCHED_/$match/g" \
                                 | sed "s/ISMC/$ismc/g" \
                                 | sed "s/GENJETS/$genjets/g" \
+                                | sed "s/GENPARTONS/$genpartons/g" \
                                 | sed "s/GENPARTICLES/$genparticles/g" \
                                 | sed "s/TRACKS/$tracks/g" \
                                 | sed "s/PARTICLEFLOW/$pflow/g" \

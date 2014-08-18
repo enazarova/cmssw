@@ -11,7 +11,8 @@ ak7PFmatch = patJetGenJetMatch.clone(
     matched = cms.InputTag("ak7HiGenJets")
     )
 
-ak7PFparton = patJetPartonMatch.clone(src = cms.InputTag("ak7PFJets")
+ak7PFparton = patJetPartonMatch.clone(src = cms.InputTag("ak7PFJets"),
+                                                        matched = cms.InputTag("genParticles")
                                                         )
 
 ak7PFcorr = patJetCorrFactors.clone(
@@ -206,6 +207,8 @@ ak7PFJetSequence_mc = cms.Sequence(
                                                   )
 
 ak7PFJetSequence_data = cms.Sequence(ak7PFcorr
+                                                    *
+                                                    ak7PFJetID
                                                     *
                                                     ak7PFJetTracksAssociatorAtVertex
                                                     *
