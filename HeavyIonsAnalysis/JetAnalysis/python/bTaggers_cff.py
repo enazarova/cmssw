@@ -166,6 +166,5 @@ class bTaggers:
         self.match   = patJetGenJetMatch.clone(src      = cms.InputTag(jetname+"Jets"),
                 matched  = cms.InputTag(jetname+"clean"))
         self.parton  = patJetPartonMatch.clone(src      = cms.InputTag(jetname+"Jets"),
-                                                matched = cms.InputTag("hiPartons")
                                                 )
 
