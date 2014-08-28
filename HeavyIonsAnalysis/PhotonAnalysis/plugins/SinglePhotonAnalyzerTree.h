@@ -96,10 +96,16 @@ protected:
 
   edm::InputTag evtPlaneLabel;
   edm::InputTag EleTag_;  // gsf electrons
+  
+  edm::InputTag pfCandidateLabel_;  // particle flow 
+  edm::InputTag srcPfVor_; // Voronoi background 
 
+  edm::InputTag towerCandidateLabel_; // tower hits
+  edm::InputTag srcTowerVor_; // voronoi background
 
+  
   // HepMC switch for HI July Exercise.
-
+  
   // basiccluster inputtags for heavy ion
   edm::InputTag basicClusterBarrel_;
   edm::InputTag basicClusterEndcap_;
@@ -345,6 +351,79 @@ protected:
   float t24[kMaxPhotons];
   float t34[kMaxPhotons];
   float t44[kMaxPhotons];
+
+
+  float pfcIso1[kMaxPhotons];
+  float pfcIso2[kMaxPhotons];
+  float pfcIso3[kMaxPhotons];
+  float pfcIso4[kMaxPhotons];
+  float pfcIso5[kMaxPhotons];
+  
+  float pfpIso1[kMaxPhotons];
+  float pfpIso2[kMaxPhotons];
+  float pfpIso3[kMaxPhotons];
+  float pfpIso4[kMaxPhotons];
+  float pfpIso5[kMaxPhotons];
+  
+  float pfnIso1[kMaxPhotons];
+  float pfnIso2[kMaxPhotons];
+  float pfnIso3[kMaxPhotons];
+  float pfnIso4[kMaxPhotons];
+  float pfnIso5[kMaxPhotons];
+
+  float pfsumIso1[kMaxPhotons];
+  float pfsumIso2[kMaxPhotons];
+  float pfsumIso3[kMaxPhotons];
+  float pfsumIso4[kMaxPhotons];
+  float pfsumIso5[kMaxPhotons];
+
+  float pfcVsIso1[kMaxPhotons];
+  float pfcVsIso2[kMaxPhotons];
+  float pfcVsIso3[kMaxPhotons];
+  float pfcVsIso4[kMaxPhotons];
+  float pfcVsIso5[kMaxPhotons];
+
+  float pfnVsIso1[kMaxPhotons];
+  float pfnVsIso2[kMaxPhotons];
+  float pfnVsIso3[kMaxPhotons];
+  float pfnVsIso4[kMaxPhotons];
+  float pfnVsIso5[kMaxPhotons];
+
+  float pfpVsIso1[kMaxPhotons];
+  float pfpVsIso2[kMaxPhotons];
+  float pfpVsIso3[kMaxPhotons];
+  float pfpVsIso4[kMaxPhotons];
+  float pfpVsIso5[kMaxPhotons];
+
+  float pfsumVsIso1[kMaxPhotons];
+  float pfsumVsIso2[kMaxPhotons];
+  float pfsumVsIso3[kMaxPhotons];
+  float pfsumVsIso4[kMaxPhotons];
+  float pfsumVsIso5[kMaxPhotons];
+
+
+  float pfVsSubIso1[kMaxPhotons];
+  float pfVsSubIso2[kMaxPhotons];
+  float pfVsSubIso3[kMaxPhotons];
+  float pfVsSubIso4[kMaxPhotons];
+  float pfVsSubIso5[kMaxPhotons];
+
+  float towerIso1[kMaxPhotons];
+  float towerIso2[kMaxPhotons];
+  float towerIso3[kMaxPhotons];
+  float towerIso4[kMaxPhotons];
+  float towerIso5[kMaxPhotons];
+  float towerVsIso1[kMaxPhotons];
+  float towerVsIso2[kMaxPhotons];
+  float towerVsIso3[kMaxPhotons];
+  float towerVsIso4[kMaxPhotons];
+  float towerVsIso5[kMaxPhotons];
+  float towerVsSubIso1[kMaxPhotons];
+  float towerVsSubIso2[kMaxPhotons];
+  float towerVsSubIso3[kMaxPhotons];
+  float towerVsSubIso4[kMaxPhotons];
+  float towerVsSubIso5[kMaxPhotons];
+
 
   int   isGenMatched[kMaxPhotons];
   float genMatchedPt[kMaxPhotons];

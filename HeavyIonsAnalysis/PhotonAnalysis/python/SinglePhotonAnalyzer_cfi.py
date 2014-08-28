@@ -66,7 +66,11 @@ singlePhotonAnalyzer = cms.EDAnalyzer("SinglePhotonAnalyzer",
                                       doStoreConversions        = cms.untracked.bool(False),
                                       doStoreTracks             = cms.untracked.bool(True),
                                       gsfElectronCollection = cms.untracked.InputTag("gsfElectrons"),
-                                      hiEvtPlane_               = cms.InputTag("hiEvtPlane","recoLevel")
+                                      hiEvtPlane_               = cms.InputTag("hiEvtPlane","recoLevel"),
+                                      pfCandidateLabel            =cms.InputTag("particleFlowTmp"),
+                                      voronoiBkg                   = cms.InputTag("voronoiBackgroundPF"),
+                                      towerCandidateLabel               = cms.InputTag("towerMaker"),
+                                      towerVoronoiBkg                   = cms.InputTag("voronoiBackgroundCalo")
                                       )
 
 
