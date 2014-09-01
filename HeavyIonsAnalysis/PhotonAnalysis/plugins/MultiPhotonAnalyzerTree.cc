@@ -544,23 +544,23 @@ int MultiPhotonAnalyzerTree::selectStorePhotons(const edm::Event& e,const edm::E
 
 
     // particle flow isolation 
-    pfcIso1                       [nphotonscounter]    =  pfIso.getPfIso(photon, 1, 0.1, 0.06, 0.04, 0 );
-    pfcIso2                       [nphotonscounter]    =  pfIso.getPfIso(photon, 1, 0.2, 0.06, 0.04, 0 );
-    pfcIso3                       [nphotonscounter]    =  pfIso.getPfIso(photon, 1, 0.3, 0.06, 0.04, 0 );
-    pfcIso4                       [nphotonscounter]    =  pfIso.getPfIso(photon, 1, 0.4, 0.06, 0.04, 0 );
-    pfcIso5                       [nphotonscounter]    =  pfIso.getPfIso(photon, 1, 0.5, 0.06, 0.04, 0 );
+    pfcIso1                       [nphotonscounter]    =  pfIso.getPfIso(photon, 1, 0.1, 0.02, 0.0, 0 );
+    pfcIso2                       [nphotonscounter]    =  pfIso.getPfIso(photon, 1, 0.2, 0.02, 0.0, 0 );
+    pfcIso3                       [nphotonscounter]    =  pfIso.getPfIso(photon, 1, 0.3, 0.02, 0.0, 0 );
+    pfcIso4                       [nphotonscounter]    =  pfIso.getPfIso(photon, 1, 0.4, 0.02, 0.0, 0 );
+    pfcIso5                       [nphotonscounter]    =  pfIso.getPfIso(photon, 1, 0.5, 0.02, 0.0, 0 );
     
-    pfnIso1                       [nphotonscounter]    =  pfIso.getPfIso(photon, 5, 0.1, 0.06, 0.04, 0 );
-    pfnIso2                       [nphotonscounter]    =  pfIso.getPfIso(photon, 5, 0.2, 0.06, 0.04, 0 );
-    pfnIso3                       [nphotonscounter]    =  pfIso.getPfIso(photon, 5, 0.3, 0.06, 0.04, 0 );
-    pfnIso4                       [nphotonscounter]    =  pfIso.getPfIso(photon, 5, 0.4, 0.06, 0.04, 0 );
-    pfnIso5                       [nphotonscounter]    =  pfIso.getPfIso(photon, 5, 0.5, 0.06, 0.04, 0 );
+    pfnIso1                       [nphotonscounter]    =  pfIso.getPfIso(photon, 5, 0.1, 0.0, 0.0, 0 );
+    pfnIso2                       [nphotonscounter]    =  pfIso.getPfIso(photon, 5, 0.2, 0.0, 0.0, 0 );
+    pfnIso3                       [nphotonscounter]    =  pfIso.getPfIso(photon, 5, 0.3, 0.0, 0.0, 0 );
+    pfnIso4                       [nphotonscounter]    =  pfIso.getPfIso(photon, 5, 0.4, 0.0, 0.0, 0 );
+    pfnIso5                       [nphotonscounter]    =  pfIso.getPfIso(photon, 5, 0.5, 0.0, 0.0, 0 );
 
-    pfpIso1                       [nphotonscounter]    =  pfIso.getPfIso(photon, 4, 0.1, 0.06, 0.04, 0 );
-    pfpIso2                       [nphotonscounter]    =  pfIso.getPfIso(photon, 4, 0.2, 0.06, 0.04, 0 );
-    pfpIso3                       [nphotonscounter]    =  pfIso.getPfIso(photon, 4, 0.3, 0.06, 0.04, 0 );
-    pfpIso4                       [nphotonscounter]    =  pfIso.getPfIso(photon, 4, 0.4, 0.06, 0.04, 0 );
-    pfpIso5                       [nphotonscounter]    =  pfIso.getPfIso(photon, 4, 0.5, 0.06, 0.04, 0 );
+    pfpIso1                       [nphotonscounter]    =  pfIso.getPfIso(photon, 4, 0.1, 0.0, 0.015, 0 );
+    pfpIso2                       [nphotonscounter]    =  pfIso.getPfIso(photon, 4, 0.2, 0.0, 0.015, 0 );
+    pfpIso3                       [nphotonscounter]    =  pfIso.getPfIso(photon, 4, 0.3, 0.0, 0.015, 0 );
+    pfpIso4                       [nphotonscounter]    =  pfIso.getPfIso(photon, 4, 0.4, 0.0, 0.015, 0 );
+    pfpIso5                       [nphotonscounter]    =  pfIso.getPfIso(photon, 4, 0.5, 0.0, 0.015, 0 );
 
     pfsumIso1                       [nphotonscounter]    =  pfcIso1[nphotonscounter] + pfnIso1[nphotonscounter] + pfpIso1[nphotonscounter] ; 
     pfsumIso2                       [nphotonscounter]    =  pfcIso2[nphotonscounter] + pfnIso2[nphotonscounter] + pfpIso2[nphotonscounter] ; 
@@ -572,32 +572,73 @@ int MultiPhotonAnalyzerTree::selectStorePhotons(const edm::Event& e,const edm::E
     pfVsSubIso2                       [nphotonscounter]    =  0; //pfIso.getVsPfIso(photon, 0.2, 0.06, 0.04, 0, false );
     pfVsSubIso3                       [nphotonscounter]    =  0;  //pfIso.getVsPfIso(photon, 0.3, 0.06, 0.04, 0, false );
     pfVsSubIso4                       [nphotonscounter]    =  0;  //pfIso.getVsPfIso(photon, 0.4, 0.06, 0.04, 0, false );
-    pfVsSubIso5                       [nphotonscounter]    =  0;  //pfIso.getVsPfIso(photon, 0.5, 0.06, 0.04, 0, false );
+    pfVsSubIso5                   [nphotonscounter]    =  0;  //pfIso.getVsPfIso(photon, 0.5, 0.06, 0.04, 0, false );
 
-    pfcVsIso1                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.1, 0.06, 0.04, 0, true);
-    pfcVsIso2                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.2, 0.06, 0.04, 0, true );
-    pfcVsIso3                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.3, 0.06, 0.04, 0, true );
-    pfcVsIso4                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.4, 0.06, 0.04, 0, true );
-    pfcVsIso5                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.5, 0.06, 0.04, 0, true );
+    pfcVsIso1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.1, 0.02, 0.0, 0, true);
+    pfcVsIso2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.2, 0.02, 0.0, 0, true );
+    pfcVsIso3                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.3, 0.02, 0.0, 0, true );
+    pfcVsIso4                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.4, 0.02, 0.0, 0, true );
+    pfcVsIso5                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.5, 0.02, 0.0, 0, true );
+    pfcVsIso1th1                 [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.1, 0.02, 0.0, 1, true);
+    pfcVsIso2th1                 [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.2, 0.02, 0.0, 1, true );
+    pfcVsIso3th1                 [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.3, 0.02, 0.0, 1, true );
+    pfcVsIso4th1                 [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.4, 0.02, 0.0, 1, true );
+    pfcVsIso5th1                 [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.5, 0.02, 0.0, 1, true );
+    pfcVsIso1th2                 [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.1, 0.02, 0.0, 2, true);
+    pfcVsIso2th2                 [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.2, 0.02, 0.0, 2, true );
+    pfcVsIso3th2                 [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.3, 0.02, 0.0, 2, true );
+    pfcVsIso4th2                 [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.4, 0.02, 0.0, 2, true );
+    pfcVsIso5th2                 [nphotonscounter]    =  pfIso.getVsPfIso(photon, 1, 0.5, 0.02, 0.0, 2, true );
 
-    pfnVsIso1                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.1, 0.06, 0.04, 0, true);
-    pfnVsIso2                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.2, 0.06, 0.04, 0, true );
-    pfnVsIso3                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.3, 0.06, 0.04, 0, true );
-    pfnVsIso4                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.4, 0.06, 0.04, 0, true );
-    pfnVsIso5                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.5, 0.06, 0.04, 0, true );
 
-    pfpVsIso1                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.1, 0.06, 0.04, 0, true);
-    pfpVsIso2                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.2, 0.06, 0.04, 0, true );
-    pfpVsIso3                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.3, 0.06, 0.04, 0, true );
-    pfpVsIso4                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.4, 0.06, 0.04, 0, true );
-    pfpVsIso5                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.5, 0.06, 0.04, 0, true );
+    pfnVsIso1                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.1, 0.0, 0.0, 0, true);
+    pfnVsIso2                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.2, 0.0, 0.0, 0, true );
+    pfnVsIso3                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.3, 0.0, 0.0, 0, true );
+    pfnVsIso4                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.4, 0.0, 0.0, 0, true );
+    pfnVsIso5                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.5, 0.0, 0.0, 0, true );
+    pfnVsIso1th1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.1, 0.0, 0.0, 1, true);
+    pfnVsIso2th1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.2, 0.0, 0.0, 1, true );
+    pfnVsIso3th1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.3, 0.0, 0.0, 1, true );
+    pfnVsIso4th1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.4, 0.0, 0.0, 1, true );
+    pfnVsIso5th1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.5, 0.0, 0.0, 1, true );
+    pfnVsIso1th2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.1, 0.0, 0.0, 2, true);
+    pfnVsIso2th2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.2, 0.0, 0.0, 2, true );
+    pfnVsIso3th2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.3, 0.0, 0.0, 2, true );
+    pfnVsIso4th2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.4, 0.0, 0.0, 2, true );
+    pfnVsIso5th2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 5, 0.5, 0.0, 0.0, 2, true );
+
+    pfpVsIso1                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.1,  0.0, 0.015, 0, true);
+    pfpVsIso2                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.2,  0.0, 0.015, 0, true );
+    pfpVsIso3                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.3,  0.0, 0.015, 0, true );
+    pfpVsIso4                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.4,  0.0, 0.015, 0, true );
+    pfpVsIso5                       [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.5,  0.0, 0.015, 0, true );
+    pfpVsIso1th1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.1,  0.0, 0.015, 1, true);
+    pfpVsIso2th1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.2,  0.0, 0.015, 1, true );
+    pfpVsIso3th1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.3,  0.0, 0.015, 1, true );
+    pfpVsIso4th1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.4,  0.0, 0.015, 1, true );
+    pfpVsIso5th1                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.5,  0.0, 0.015, 1, true );
+    pfpVsIso1th2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.1,  0.0, 0.015, 2, true);
+    pfpVsIso2th2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.2,  0.0, 0.015, 2, true );
+    pfpVsIso3th2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.3,  0.0, 0.015, 2, true );
+    pfpVsIso4th2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.4,  0.0, 0.015, 2, true );
+    pfpVsIso5th2                    [nphotonscounter]    =  pfIso.getVsPfIso(photon, 4, 0.5,  0.0, 0.015, 2, true );
+
     
-    pfsumVsIso1                       [nphotonscounter]    =  pfcVsIso1[nphotonscounter] + pfnVsIso1[nphotonscounter] + pfpVsIso1[nphotonscounter] ;
-    pfsumVsIso2                       [nphotonscounter]    =  pfcVsIso2[nphotonscounter] + pfnVsIso2[nphotonscounter] + pfpVsIso2[nphotonscounter] ;
-    pfsumVsIso3                       [nphotonscounter]    =  pfcVsIso3[nphotonscounter] + pfnVsIso3[nphotonscounter] + pfpVsIso3[nphotonscounter] ;
-    pfsumVsIso4                       [nphotonscounter]    =  pfcVsIso4[nphotonscounter] + pfnVsIso4[nphotonscounter] + pfpVsIso4[nphotonscounter] ;
-    pfsumVsIso5                       [nphotonscounter]    =  pfcVsIso5[nphotonscounter] + pfnVsIso5[nphotonscounter] + pfpVsIso5[nphotonscounter] ;
-
+    pfsumVsIso1       [nphotonscounter]    =  pfcVsIso1[nphotonscounter] + pfnVsIso1[nphotonscounter] + pfpVsIso1[nphotonscounter] ;
+    pfsumVsIso2       [nphotonscounter]    =  pfcVsIso2[nphotonscounter] + pfnVsIso2[nphotonscounter] + pfpVsIso2[nphotonscounter] ;
+    pfsumVsIso3       [nphotonscounter]    =  pfcVsIso3[nphotonscounter] + pfnVsIso3[nphotonscounter] + pfpVsIso3[nphotonscounter] ;
+    pfsumVsIso4       [nphotonscounter]    =  pfcVsIso4[nphotonscounter] + pfnVsIso4[nphotonscounter] + pfpVsIso4[nphotonscounter] ;
+    pfsumVsIso5       [nphotonscounter]    =  pfcVsIso5[nphotonscounter] + pfnVsIso5[nphotonscounter] + pfpVsIso5[nphotonscounter] ;
+    pfsumVsIso1th1    [nphotonscounter]    =  pfcVsIso1th1[nphotonscounter] + pfnVsIso1th1[nphotonscounter] + pfpVsIso1th1[nphotonscounter] ;
+    pfsumVsIso2th1    [nphotonscounter]    =  pfcVsIso2th1[nphotonscounter] + pfnVsIso2th1[nphotonscounter] + pfpVsIso2th1[nphotonscounter] ;
+    pfsumVsIso3th1    [nphotonscounter]    =  pfcVsIso3th1[nphotonscounter] + pfnVsIso3th1[nphotonscounter] + pfpVsIso3th1[nphotonscounter] ;
+    pfsumVsIso4th1    [nphotonscounter]    =  pfcVsIso4th1[nphotonscounter] + pfnVsIso4th1[nphotonscounter] + pfpVsIso4th1[nphotonscounter] ;
+    pfsumVsIso5th1    [nphotonscounter]    =  pfcVsIso5th1[nphotonscounter] + pfnVsIso5th1[nphotonscounter] + pfpVsIso5th1[nphotonscounter] ;
+    pfsumVsIso1th2    [nphotonscounter]    =  pfcVsIso1th2[nphotonscounter] + pfnVsIso1th2[nphotonscounter] + pfpVsIso1th2[nphotonscounter] ;
+    pfsumVsIso2th2    [nphotonscounter]    =  pfcVsIso2th2[nphotonscounter] + pfnVsIso2th2[nphotonscounter] + pfpVsIso2th2[nphotonscounter] ;
+    pfsumVsIso3th2    [nphotonscounter]    =  pfcVsIso3th2[nphotonscounter] + pfnVsIso3th2[nphotonscounter] + pfpVsIso3th2[nphotonscounter] ;
+    pfsumVsIso4th2    [nphotonscounter]    =  pfcVsIso4th2[nphotonscounter] + pfnVsIso4th2[nphotonscounter] + pfpVsIso4th2[nphotonscounter] ;
+    pfsumVsIso5th2    [nphotonscounter]    =  pfcVsIso5th2[nphotonscounter] + pfnVsIso5th2[nphotonscounter] + pfpVsIso5th2[nphotonscounter] ;
 
     // tower iso
     towerIso1                       [nphotonscounter]    =  towerIso.getTowerIso(photon, 0.1, 0.06, 0.04, 0 );

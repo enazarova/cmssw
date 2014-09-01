@@ -382,24 +382,66 @@ protected:
   float pfcVsIso3[kMaxPhotons];
   float pfcVsIso4[kMaxPhotons];
   float pfcVsIso5[kMaxPhotons];
+  float pfcVsIso1th1[kMaxPhotons];
+  float pfcVsIso2th1[kMaxPhotons];
+  float pfcVsIso3th1[kMaxPhotons];
+  float pfcVsIso4th1[kMaxPhotons];
+  float pfcVsIso5th1[kMaxPhotons];
+  float pfcVsIso1th2[kMaxPhotons];
+  float pfcVsIso2th2[kMaxPhotons];
+  float pfcVsIso3th2[kMaxPhotons];
+  float pfcVsIso4th2[kMaxPhotons];
+  float pfcVsIso5th2[kMaxPhotons];
 
   float pfnVsIso1[kMaxPhotons];
   float pfnVsIso2[kMaxPhotons];
   float pfnVsIso3[kMaxPhotons];
   float pfnVsIso4[kMaxPhotons];
   float pfnVsIso5[kMaxPhotons];
+  float pfnVsIso1th1[kMaxPhotons];
+  float pfnVsIso2th1[kMaxPhotons];
+  float pfnVsIso3th1[kMaxPhotons];
+  float pfnVsIso4th1[kMaxPhotons];
+  float pfnVsIso5th1[kMaxPhotons];
+  float pfnVsIso1th2[kMaxPhotons];
+  float pfnVsIso2th2[kMaxPhotons];
+  float pfnVsIso3th2[kMaxPhotons];
+  float pfnVsIso4th2[kMaxPhotons];
+  float pfnVsIso5th2[kMaxPhotons];
+
 
   float pfpVsIso1[kMaxPhotons];
   float pfpVsIso2[kMaxPhotons];
   float pfpVsIso3[kMaxPhotons];
   float pfpVsIso4[kMaxPhotons];
   float pfpVsIso5[kMaxPhotons];
+  float pfpVsIso1th1[kMaxPhotons];
+  float pfpVsIso2th1[kMaxPhotons];
+  float pfpVsIso3th1[kMaxPhotons];
+  float pfpVsIso4th1[kMaxPhotons];
+  float pfpVsIso5th1[kMaxPhotons];
+  float pfpVsIso1th2[kMaxPhotons];
+  float pfpVsIso2th2[kMaxPhotons];
+  float pfpVsIso3th2[kMaxPhotons];
+  float pfpVsIso4th2[kMaxPhotons];
+  float pfpVsIso5th2[kMaxPhotons];
+
 
   float pfsumVsIso1[kMaxPhotons];
   float pfsumVsIso2[kMaxPhotons];
   float pfsumVsIso3[kMaxPhotons];
   float pfsumVsIso4[kMaxPhotons];
   float pfsumVsIso5[kMaxPhotons];
+  float pfsumVsIso1th1[kMaxPhotons];
+  float pfsumVsIso2th1[kMaxPhotons];
+  float pfsumVsIso3th1[kMaxPhotons];
+  float pfsumVsIso4th1[kMaxPhotons];
+  float pfsumVsIso5th1[kMaxPhotons];
+  float pfsumVsIso1th2[kMaxPhotons];
+  float pfsumVsIso2th2[kMaxPhotons];
+  float pfsumVsIso3th2[kMaxPhotons];
+  float pfsumVsIso4th2[kMaxPhotons];
+  float pfsumVsIso5th2[kMaxPhotons];
 
 
   float pfVsSubIso1[kMaxPhotons];

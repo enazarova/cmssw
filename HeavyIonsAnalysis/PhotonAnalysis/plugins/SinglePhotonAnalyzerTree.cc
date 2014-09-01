@@ -430,24 +430,64 @@ void SinglePhotonAnalyzerTree::beginJob() {
   theTree->Branch("pfcVsIso3",pfcVsIso3,"pfcVsIso3[nPhotons]/F");
   theTree->Branch("pfcVsIso4",pfcVsIso4,"pfcVsIso4[nPhotons]/F");
   theTree->Branch("pfcVsIso5",pfcVsIso5,"pfcVsIso5[nPhotons]/F");
+  theTree->Branch("pfcVsIso1th1",pfcVsIso1th1,"pfcVsIso1th1[nPhotons]/F");
+  theTree->Branch("pfcVsIso2th1",pfcVsIso2th1,"pfcVsIso2th1[nPhotons]/F");
+  theTree->Branch("pfcVsIso3th1",pfcVsIso3th1,"pfcVsIso3th1[nPhotons]/F");
+  theTree->Branch("pfcVsIso4th1",pfcVsIso4th1,"pfcVsIso4th1[nPhotons]/F");
+  theTree->Branch("pfcVsIso5th1",pfcVsIso5th1,"pfcVsIso5th1[nPhotons]/F");
+  theTree->Branch("pfcVsIso1th2",pfcVsIso1th2,"pfcVsIso1th2[nPhotons]/F");
+  theTree->Branch("pfcVsIso2th2",pfcVsIso2th2,"pfcVsIso2th2[nPhotons]/F");
+  theTree->Branch("pfcVsIso3th2",pfcVsIso3th2,"pfcVsIso3th2[nPhotons]/F");
+  theTree->Branch("pfcVsIso4th2",pfcVsIso4th2,"pfcVsIso4th2[nPhotons]/F");
+  theTree->Branch("pfcVsIso5th2",pfcVsIso5th2,"pfcVsIso5th2[nPhotons]/F");
 
   theTree->Branch("pfnVsIso1",pfnVsIso1,"pfnVsIso1[nPhotons]/F");
   theTree->Branch("pfnVsIso2",pfnVsIso2,"pfnVsIso2[nPhotons]/F");
   theTree->Branch("pfnVsIso3",pfnVsIso3,"pfnVsIso3[nPhotons]/F");
   theTree->Branch("pfnVsIso4",pfnVsIso4,"pfnVsIso4[nPhotons]/F");
   theTree->Branch("pfnVsIso5",pfnVsIso5,"pfnVsIso5[nPhotons]/F");
+  theTree->Branch("pfnVsIso1th1",pfnVsIso1th1,"pfnVsIso1th1[nPhotons]/F");
+  theTree->Branch("pfnVsIso2th1",pfnVsIso2th1,"pfnVsIso2th1[nPhotons]/F");
+  theTree->Branch("pfnVsIso3th1",pfnVsIso3th1,"pfnVsIso3th1[nPhotons]/F");
+  theTree->Branch("pfnVsIso4th1",pfnVsIso4th1,"pfnVsIso4th1[nPhotons]/F");
+  theTree->Branch("pfnVsIso5th1",pfnVsIso5th1,"pfnVsIso5th1[nPhotons]/F");
+  theTree->Branch("pfnVsIso1th2",pfnVsIso1th2,"pfnVsIso1th2[nPhotons]/F");
+  theTree->Branch("pfnVsIso2th2",pfnVsIso2th2,"pfnVsIso2th2[nPhotons]/F");
+  theTree->Branch("pfnVsIso3th2",pfnVsIso3th2,"pfnVsIso3th2[nPhotons]/F");
+  theTree->Branch("pfnVsIso4th2",pfnVsIso4th2,"pfnVsIso4th2[nPhotons]/F");
+  theTree->Branch("pfnVsIso5th2",pfnVsIso5th2,"pfnVsIso5th2[nPhotons]/F");
 
   theTree->Branch("pfpVsIso1",pfpVsIso1,"pfpVsIso1[nPhotons]/F");
   theTree->Branch("pfpVsIso2",pfpVsIso2,"pfpVsIso2[nPhotons]/F");
   theTree->Branch("pfpVsIso3",pfpVsIso3,"pfpVsIso3[nPhotons]/F");
   theTree->Branch("pfpVsIso4",pfpVsIso4,"pfpVsIso4[nPhotons]/F");
   theTree->Branch("pfpVsIso5",pfpVsIso5,"pfpVsIso5[nPhotons]/F");
+  theTree->Branch("pfpVsIso1th1",pfpVsIso1th1,"pfpVsIso1th1[nPhotons]/F");
+  theTree->Branch("pfpVsIso2th1",pfpVsIso2th1,"pfpVsIso2th1[nPhotons]/F");
+  theTree->Branch("pfpVsIso3th1",pfpVsIso3th1,"pfpVsIso3th1[nPhotons]/F");
+  theTree->Branch("pfpVsIso4th1",pfpVsIso4th1,"pfpVsIso4th1[nPhotons]/F");
+  theTree->Branch("pfpVsIso5th1",pfpVsIso5th1,"pfpVsIso5th1[nPhotons]/F");
+  theTree->Branch("pfpVsIso1th2",pfpVsIso1th2,"pfpVsIso1th2[nPhotons]/F");
+  theTree->Branch("pfpVsIso2th2",pfpVsIso2th2,"pfpVsIso2th2[nPhotons]/F");
+  theTree->Branch("pfpVsIso3th2",pfpVsIso3th2,"pfpVsIso3th2[nPhotons]/F");
+  theTree->Branch("pfpVsIso4th2",pfpVsIso4th2,"pfpVsIso4th2[nPhotons]/F");
+  theTree->Branch("pfpVsIso5th2",pfpVsIso5th2,"pfpVsIso5th2[nPhotons]/F");
 
   theTree->Branch("pfsumVsIso1",pfsumVsIso1,"pfsumVsIso1[nPhotons]/F");
   theTree->Branch("pfsumVsIso2",pfsumVsIso2,"pfsumVsIso2[nPhotons]/F");
   theTree->Branch("pfsumVsIso3",pfsumVsIso3,"pfsumVsIso3[nPhotons]/F");
   theTree->Branch("pfsumVsIso4",pfsumVsIso4,"pfsumVsIso4[nPhotons]/F");
   theTree->Branch("pfsumVsIso5",pfsumVsIso5,"pfsumVsIso5[nPhotons]/F");
+  theTree->Branch("pfsumVsIso1th1",pfsumVsIso1th1,"pfsumVsIso1th1[nPhotons]/F");
+  theTree->Branch("pfsumVsIso2th1",pfsumVsIso2th1,"pfsumVsIso2th1[nPhotons]/F");
+  theTree->Branch("pfsumVsIso3th1",pfsumVsIso3th1,"pfsumVsIso3th1[nPhotons]/F");
+  theTree->Branch("pfsumVsIso4th1",pfsumVsIso4th1,"pfsumVsIso4th1[nPhotons]/F");
+  theTree->Branch("pfsumVsIso5th1",pfsumVsIso5th1,"pfsumVsIso5th1[nPhotons]/F");
+  theTree->Branch("pfsumVsIso1th2",pfsumVsIso1th2,"pfsumVsIso1th2[nPhotons]/F");
+  theTree->Branch("pfsumVsIso2th2",pfsumVsIso2th2,"pfsumVsIso2th2[nPhotons]/F");
+  theTree->Branch("pfsumVsIso3th2",pfsumVsIso3th2,"pfsumVsIso3th2[nPhotons]/F");
+  theTree->Branch("pfsumVsIso4th2",pfsumVsIso4th2,"pfsumVsIso4th2[nPhotons]/F");
+  theTree->Branch("pfsumVsIso5th2",pfsumVsIso5th2,"pfsumVsIso5th2[nPhotons]/F");
 
 
   theTree->Branch("pfVsSubIso1",pfVsSubIso1,"pfVsSubIso1[nPhotons]/F");
