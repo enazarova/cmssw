@@ -9,7 +9,6 @@
 <use   name="Geometry/CaloGeometry"/>
 <use   name="RecoCaloTools/MetaCollections"/>
 <use   name="DataFormats/HepMCCandidate"/>
-<use   name="DataFormats/HepMCCandidate"/>
 <use   name="DataFormats/EgammaCandidates"/>
 <use   name="RecoHI/HiCentralityAlgos"/>
 <use   name="clhep"/>
