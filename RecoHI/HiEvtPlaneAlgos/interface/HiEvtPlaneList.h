@@ -1,199 +1,125 @@
+#ifndef __HiEvtPlaneList__
+#define __HiEvtPlaneList__
 /*
-       Name                 EtaMin1 EtaMax1 EtaMin2 EtaMax2  Order   ResCoreMate 1        ResCorMate 2
- 0 EvtPlaneFromTracksMidEta	 -0.75   0.75		       2        etHFm                    etHFp
- 1 EvtPTracksPosEtaGap		     1	    2		       2        EPlaneFromTracksMidEta   EPTracksNegEtaGap
- 2 EvtPTracksNegEtaGap		    -2	   -1	               2        EPlaneFromTracksMidEta   EPTracksPosEtaGap
-
- 3 EPTracksMid3	                 -0.75   0.75		       3        etHFm3                   etHFp3
- 4 EPTracksPos3		             1	    2		       3        EPTracksMid3             EPTracksNeg3
- 5 EPTracksNeg3		            -2	   -1	               3        EPTracksMid3             EPTracksPos3
-
- 6 EPTracksMid4	                 -0.75   0.75		       4        etHFm4                   etHFp4
- 7 EPTracksPos4		             1	    2		       4        EPTracksMid4             EPTracksNeg4
- 8 EPTracksNeg4		            -2	   -1	               4        EPTracksMid4             EPTracksPos4
-
- 9 EPTracksMid5	                 -0.75   0.75		       5        etHFm5                   etHFp5
-10 EPTracksPos5		             1	    2		       5        EPTracksMid5             EPTracksNeg5
-11 EPTracksNeg5		            -2	   -1	               5        EPTracksMid5             EPTracksPos5
-
-12 EPTracksMid6	                 -0.75   0.75		       6        etHFm6                   etHFp6
-13 EPTracksPos6		             1	    2		       6        EPTracksMid6             EPTracksNeg6
-14 EPTracksNeg6		            -2	   -1	               6        EPTracksMid6             EPTracksPos6
-
-15 etEcal	                    -2.7  2.7		       2        etHFm                    etHFp
-16 etEcalP	                     0.3  2.7		       2        etHFm                    etHFp
-17 etEcalM	                    -2.7 -0.3		       2        etHFm                    etHFp
-
-18 etHcal	                    -2.7  2.7		       2        etHFm                    etHFp
-19 etHcalP	                     0.3  2.7		       2        etHFm                    etHFp
-20 etHcalM	                    -2.7 -0.3		       2        etHFm                    etHFp
-
-21 etHF	                            -5	   -3	   3	  5    2        EvtPTracksNegEtaGap      EvtPTracksPosEtaGap
-22 etHFp	                     3	    5		       2        etHFm                    EvtPlaneFromTracksMidEta
-23 etHFm	                    -5	   -3		       2        EvtPlaneFromTracksMidEta etHFp
-
-24 etHF3	                    -5	   -3	   3	  5    3        EPTracksNeg3             EPTracksPos3 
-25 etHFp3	                     3	    5		       3        etHFm3                   EPTracksMid3
-26 etHFm3	                    -5	   -3		       3        EPTracksMid3             etHFp3
-
-27 etHF4	                    -5	   -3	   3	  5    4        EPTracksNeg4             EPTracksPos4 
-28 etHFp4	                     3	    5		       4        etHFm4                   EPTracksMid4
-29 etHFm4	                    -5	   -3		       4        EPTracksMid4             etHFp4
-
-30 etHF5	                    -5	   -3	   3	  5    5        EPTracksNeg5             EPTracksPos5 
-31 etHFp5	                     3	    5		       5        etHFm5                   EPTracksMid5
-32 etHFm5	                    -5	   -3		       5        EPTracksMid5             etHFp5
-
-33 etHF6	                    -5	   -3	   3	  5    6        EPTracksNeg6             EPTracksPos6 
-34 etHFp6	                     3	    5		       6        etHFm6                   EPTracksMid6
-35 etHFm6	                    -5	   -3		       6        EPTracksMid6             etHFp6
-
-36 etCaloHFP	                  0.25	    5		       2        etHFm                    etEcalM
-37 etCaloHFM	                    -5  -0.25		       2        etHFp                    etEcalP
-
+Indx       Name Order EtaMin1 EtaMax1 EtaMin2 EtaMax2 ResCalcType MomConsWeight ResCoreMate1 ResCoreMate2
+   0      HFm2      2    -5.0    -3.0     0.0     0.0       3sub          no          HFp2     trackmid2
+   1      HFp2      2     3.0     5.0     0.0     0.0       3sub          no          HFm2     trackmid2
+   2       HF2      2    -5.0    -3.0     3.0     5.0       3sub          no       trackm2       trackp2
+   3 trackmid2      2    -0.7     0.7     0.0     0.0       3sub          no          HFm2          HFp2
+   4   trackm2      2    -2.0    -1.0     0.0     0.0       3sub          no          HFm2          HFp2
+   5   trackp2      2     1.0     2.0     0.0     0.0       3sub          no          HFm2          HFp2
+   6      HFm3      3    -5.0    -3.0     0.0     0.0       3sub          no          HFp3     trackmid3
+   7      HFp3      3     3.0     5.0     0.0     0.0       3sub          no          HFm3     trackmid3
+   8       HF3      3    -5.0    -3.0     3.0     5.0       3sub          no       trackm3       trackp3
+   9 trackmid3      3    -0.7     0.7     0.0     0.0       3sub          no          HFm3          HFp3
+  10   trackm3      3    -2.0    -1.0     0.0     0.0       3sub          no          HFm3          HFp3
+  11   trackp3      3     1.0     2.0     0.0     0.0       3sub          no          HFm3          HFp3
+  12      HFm4      4    -5.0    -3.0     0.0     0.0       3sub          no          HFp4     trackmid4
+  13      HFp4      4     3.0     5.0     0.0     0.0       3sub          no          HFm4     trackmid4
+  14       HF4      4    -5.0    -3.0     3.0     5.0       3sub          no       trackm4       trackp4
+  15 trackmid4      4    -0.7     0.7     0.0     0.0       3sub          no          HFm4          HFp4
+  16   trackm4      4    -2.0    -1.0     0.0     0.0       3sub          no          HFm4          HFp4
+  17   trackp4      4     1.0     2.0     0.0     0.0       3sub          no          HFm4          HFp4
+  18      HFm1      1    -5.0    -3.0     0.0     0.0       2sub          no          HFp1              
+  19      HFp1      1     3.0     5.0     0.0     0.0       2sub          no          HFm1              
+  20       HF1      1    -5.0    -3.0     3.0     5.0       3sub          no       trackm1       trackp1
+  21   trackm1      1    -2.2    -1.4     0.0     0.0       3sub         yes          HFm1          HFp1
+  22   trackp1      1     1.4     2.2     0.0     0.0       3sub         yes          HFm1          HFp1
+  23    HFm1mc      1    -5.0    -3.0     0.0     0.0       3sub         yes        HFp1mc       trackp1
+  24    HFp1mc      1     3.0     5.0     0.0     0.0       3sub         yes        HFm1mc       trackm1
 */
 #include <string>
+using namespace std;
 namespace hi{
 enum EPNamesInd {
-                 EvtPlaneFromTracksMidEta,    EvtPTracksPosEtaGap,    EvtPTracksNegEtaGap,        
-		 EPTracksMid3,                EPTracksPos3,           EPTracksNeg3,                
-                 EPTracksMid4,                EPTracksPos4,           EPTracksNeg4,    
-                 EPTracksMid5,                EPTracksPos5,           EPTracksNeg5,    
-                 EPTracksMid6,                EPTracksPos6,           EPTracksNeg6,    
-                 etEcal,                      etEcalP,                etEcalM,                
-                 etHcal,                      etHcalP,                etHcalM,
-		 etHF,                        etHFp,                  etHFm,                    
-		 etHF3,                       etHFp3,                 etHFm3,                    
-		 etHF4,                       etHFp4,                 etHFm4,                    
-		 etHF5,                       etHFp5,                 etHFm5,                    
-		 etHF6,                       etHFp6,                 etHFm6,                    
-                 etCaloHFP,                   etCaloHFM  
+      HFm2,	      HFp2,	       HF2,	 trackmid2,	   trackm2,	
+   trackp2,	      HFm3,	      HFp3,	       HF3,	 trackmid3,	
+   trackm3,	   trackp3,	      HFm4,	      HFp4,	       HF4,	
+ trackmid4,	   trackm4,	   trackp4,	      HFm1,	      HFp1,	
+       HF1,	   trackm1,	   trackp1,	    HFm1mc,	    HFp1mc,	   EPBLANK
 };
-
 const int RCMate1[] = {
-                etHFm,                      EvtPlaneFromTracksMidEta, EvtPlaneFromTracksMidEta, 
-                etHFm3,                     EPTracksMid3,             EPTracksMid3,               
-                etHFm4,                     EPTracksMid4,             EPTracksMid4,    
-                etHFm5,                     EPTracksMid5,             EPTracksMid5,    
-                etHFm6,                     EPTracksMid6,             EPTracksMid6,    
-                etHFm,                      etHFm,                    etHFm,                    
-                etHFm,                      etHFm,                    etHFm,
-                EvtPTracksNegEtaGap,        etHFm,                    EvtPlaneFromTracksMidEta, 
-                EPTracksNeg3,               etHFm3,                   EPTracksMid3,
-                EPTracksNeg4,               etHFm4,                   EPTracksMid4,
-                EPTracksNeg5,               etHFm5,                   EPTracksMid5,
-                EPTracksNeg6,               etHFm6,                   EPTracksMid6,
-                etHFm,           etHFp };
-
+      HFp2,	      HFm2,	   trackm2,	      HFm2,	      HFm2,	
+      HFm2,	      HFp3,	      HFm3,	   trackm3,	      HFm3,	
+      HFm3,	      HFm3,	      HFp4,	      HFm4,	   trackm4,	
+      HFm4,	      HFm4,	      HFm4,	      HFp1,	      HFm1,	
+   trackm1,	      HFm1,	      HFm1,	    HFp1mc,	    HFm1mc
+};
 const int RCMate2[] = {
-                etHFp,                      EvtPTracksNegEtaGap,      EvtPTracksPosEtaGap,      
-                etHFp3,                     EPTracksNeg3,             EPTracksPos3,               
-                etHFp4,                     EPTracksNeg4,             EPTracksPos4,    
-                etHFp5,                     EPTracksNeg5,             EPTracksPos5,    
-                etHFp6,                     EPTracksNeg6,             EPTracksPos6,    
-                etHFp,                      etHFp,                    etHFp,                    
-                etHFp,                      etHFp,                    etHFp,
-                EvtPTracksPosEtaGap,        EvtPlaneFromTracksMidEta, etHFp,
-		EPTracksPos3,               EPTracksMid3,             etHFp3,
-		EPTracksPos4,               EPTracksMid4,             etHFp4,
-		EPTracksPos5,               EPTracksMid5,             etHFp5,
-		EPTracksPos6,               EPTracksMid6,             etHFp6,      
-                etEcalM,                    etEcalP };
-
-const std::string EPNames[]={
-                 "EvtPlaneFromTracksMidEta",    "EvtPTracksPosEtaGap",    "EvtPTracksNegEtaGap",        
-		 "EPTracksMid3",                "EPTracksPos3",           "EPTracksNeg3",                
-                 "EPTracksMid4",                "EPTracksPos4",           "EPTracksNeg4",    
-                 "EPTracksMid5",                "EPTracksPos5",           "EPTracksNeg5",    
-                 "EPTracksMid6",                "EPTracksPos6",           "EPTracksNeg6",    
-                 "etEcal",                      "etEcalP",                "etEcalM",                
-                 "etHcal",                      "etHcalP",                "etHcalM",
-		 "etHF",                        "etHFp",                  "etHFm",                    
-		 "etHF3",                        "etHFp3",                 "etHFm3",                    
-		 "etHF4",                        "etHFp4",                 "etHFm4",                    
-		 "etHF5",                        "etHFp5",                 "etHFm5",                    
-		 "etHF6",                        "etHFp6",                 "etHFm6",                    
-                 "etCaloHFP",                   "etCaloHFM"  
+ trackmid2,	 trackmid2,	   trackp2,	      HFp2,	      HFp2,	
+      HFp2,	 trackmid3,	 trackmid3,	   trackp3,	      HFp3,	
+      HFp3,	      HFp3,	 trackmid4,	 trackmid4,	   trackp4,	
+      HFp4,	      HFp4,	      HFp4,	EPBLANK,	EPBLANK,	
+   trackp1,	      HFp1,	      HFp1,	   trackp1,	   trackm1
 };
-
-
-const int EPOrder[]={
-                     2,2,2,
-		     3,3,3,
-		     4,4,4,
-		     5,5,5,
-		     6,6,6,
-		     2,2,2,
-		     2,2,2,
-		     2,2,2,
-		     3,3,3,
-		     4,4,4,
-		     5,5,5,
-		     6,6,6,
-		     2,2
+const std::string EPNames[] = {
+"HFm2",	"HFp2",	"HF2",	"trackmid2",	"trackm2",	
+"trackp2",	"HFm3",	"HFp3",	"HF3",	"trackmid3",	
+"trackm3",	"trackp3",	"HFm4",	"HFp4",	"HF4",	
+"trackmid4",	"trackm4",	"trackp4",	"HFm1",	"HFp1",	
+"HF1",	"trackm1",	"trackp1",	"HFm1mc",	"HFp1mc"
 };
-
+enum Detectors {Tracker, HF};
+const int EPDet[] = {
+HF,	HF,	HF,	Tracker,	Tracker,	
+Tracker,	HF,	HF,	HF,	Tracker,	
+Tracker,	Tracker,	HF,	HF,	HF,	
+Tracker,	Tracker,	Tracker,	HF,	HF,	
+HF,	Tracker,	Tracker,	HF,	HF
+};
+const int EPOrder[] = {
+2,	2,	2,	2,	2,	
+2,	3,	3,	3,	3,	
+3,	3,	4,	4,	4,	
+4,	4,	4,	1,	1,	
+1,	1,	1,	1,	1
+};
 const double EPEtaMin1[] = {
-  -0.75,      1,    -2,   
-  -0.75,      1,    -2,  
-  -0.75,      1,    -2,    
-  -0.75,      1,    -2,    
-  -0.75,      1,    -2,    
-  -2.7,     0.3,    -2.7,    
-  -2.7,     0.3,    -2.7,
-  -5.0,     3.0,    -5.0,
-  -5.0,     3.0,    -5.0,
-  -5.0,     3.0,    -5.0,
-  -5.0,     3.0,    -5.0,
-  -5.0,     3.0,    -5.0,
-  0.25,    -5
+-5.00,	 3.00,	-5.00,	-0.70,	-2.00,	
+ 1.00,	-5.00,	 3.00,	-5.00,	-0.70,	
+-2.00,	 1.00,	-5.00,	 3.00,	-5.00,	
+-0.70,	-2.00,	 1.00,	-5.00,	 3.00,	
+-5.00,	-2.20,	 1.40,	-5.00,	 3.00
 };
-
 const double EPEtaMax1[] = {
-   0.75,      2,    -1,   
-   0.75,      2,    -1,   
-   0.75,      2,    -1,   
-   0.75,      2,    -1,   
-   0.75,      2,    -1,   
-   2.7,     2.7,  -0.3,       
-   2.7,     2.7,  -0.3,       
-    -3,       5,    -3,       
-    -3,       5,    -3,       
-    -3,       5,    -3,       
-    -3,       5,    -3,       
-    -3,       5,    -3,       
-     5,   -0.25   
+-3.00,	 5.00,	-3.00,	 0.70,	-1.00,	
+ 2.00,	-3.00,	 5.00,	-3.00,	 0.70,	
+-1.00,	 2.00,	-3.00,	 5.00,	-3.00,	
+ 0.70,	-1.00,	 2.00,	-3.00,	 5.00,	
+-3.00,	-1.40,	 2.20,	-3.00,	 5.00
 };
 const double EPEtaMin2[] = {
-  0,0,0,
-  0,0,0,
-  0,0,0,
-  0,0,0,
-  0,0,0,
-  0,0,0,
-  0,0,0,
-  3,0,0,
-  3,0,0,
-  3,0,0,
-  3,0,0,
-  3,0,0,
-  0,0
+ 0.00,	 0.00,	 3.00,	 0.00,	 0.00,	
+ 0.00,	 0.00,	 0.00,	 3.00,	 0.00,	
+ 0.00,	 0.00,	 0.00,	 0.00,	 3.00,	
+ 0.00,	 0.00,	 0.00,	 0.00,	 0.00,	
+ 3.00,	 0.00,	 0.00,	 0.00,	 0.00
 };
 const double EPEtaMax2[] = {
-  0,0,0,
-  0,0,0,
-  0,0,0,
-  0,0,0,
-  0,0,0,
-  0,0,0,
-  0,0,0,
-  5,0,0,
-  5,0,0,
-  5,0,0,
-  5,0,0,
-  5,0,0,
-  0,0
+ 0.00,	 0.00,	 5.00,	 0.00,	 0.00,	
+ 0.00,	 0.00,	 0.00,	 5.00,	 0.00,	
+ 0.00,	 0.00,	 0.00,	 0.00,	 5.00,	
+ 0.00,	 0.00,	 0.00,	 0.00,	 0.00,	
+ 5.00,	 0.00,	 0.00,	 0.00,	 0.00
 };
-
-static const int NumEPNames = 38;
+const std::string ResCalcType[] = {
+"3sub",	"3sub",	"3sub",	"3sub",	"3sub",	
+"3sub",	"3sub",	"3sub",	"3sub",	"3sub",	
+"3sub",	"3sub",	"3sub",	"3sub",	"3sub",	
+"3sub",	"3sub",	"3sub",	"2sub",	"2sub",	
+"3sub",	"3sub",	"3sub",	"3sub",	"3sub"
+};
+const std::string MomConsWeight[] = {
+"no",	"no",	"no",	"no",	"no",	
+"no",	"no",	"no",	"no",	"no",	
+"no",	"no",	"no",	"no",	"no",	
+"no",	"no",	"no",	"no",	"no",	
+"no",	"yes",	"yes",	"yes",	"yes"
+};
+static const int NumEPNames = 25;
+static const int FlatOrder = 9;
+static const int NumFlatCentBins = 50; //bins AFTER compression
+//CentBinCompression*NumFlatCentBins = #bins from centrality module
+static const int CentBinCompression = 4;
 }
+#endif

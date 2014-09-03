@@ -13,12 +13,9 @@ Implementation:
 //
 // Original Author:  Sergey Petrushanko
 //         Created:  Fri Jul 11 10:05:00 2008
-// $Id: EvtPlaneProducer.cc,v 1.21 2012/02/15 11:04:09 eulisse Exp $
+// $Id: EvtPlaneProducer.cc,v 1.18 2011/10/07 09:41:29 yilmaz Exp $
 //
 //
-#define TRACKCOLLECTION 1
-//#define RECOCHARGEDCANDIDATECOLLECTION 1
-
 
 // system include files
 #include <memory>
@@ -41,6 +38,9 @@ Implementation:
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
 
+#include "DataFormats/HeavyIonEvent/interface/Centrality.h"
+#include "RecoHI/HiCentralityAlgos/interface/CentralityProvider.h"
+
 #include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
 #include "DataFormats/Common/interface/EDProduct.h"
 #include "DataFormats/Common/interface/Ref.h"
@@ -54,9 +54,12 @@ Implementation:
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
-
 #include <cstdlib>
 #include "RecoHI/HiEvtPlaneAlgos/interface/HiEvtPlaneList.h"
+#include "CondFormats/HIObjects/interface/RPFlatParams.h"
+#include "CondFormats/DataRecord/interface/HeavyIonRPRcd.h"
+
+#include "RecoHI/HiEvtPlaneAlgos/interface/HiEvtPlaneFlatten.h"
 
 using namespace std;
 using namespace hi;
@@ -82,28 +85,28 @@ private:
       etamax2=etamaxval2;
       sumsin=0;
       sumcos=0;
+      mult = 0;
       order = (double) orderval;
     }
     ~GenPlane(){;}
     void addParticle(double w, double s, double c, double eta) {
-      if(w < 0.001) return;
+      if(fabs(w) < 0.0001) return;
       if((eta>=etamin1 && eta<etamax1) || 
 	 (etamin2!= etamax2 && eta>=etamin2 && eta<etamax2 )) {
 	sumsin+=w*s;
 	sumcos+=w*c;
-	//For tracking, w=1 and mult is the track multiplicity.  
-	//For calorimetors, w is an energy that needs to be subsequently 
-	//converted if an  multiplicity if needed
-	mult+=w;
+	sumw+=w;
+	++mult;
       }
     }
     
-    double getAngle(double &ang, double &sv, double &cv){
+    double getAngle(double &ang, double &sv, double &cv, uint &epmult){
       ang = -10;
       sv = 0;
       cv = 0;
       sv = sumsin;
       cv = sumcos;
+      epmult = mult;
       double q = sv*sv+cv*cv;
       if(q>0) ang = atan2(sv,cv)/order;
       return ang;
@@ -122,7 +125,8 @@ private:
     double etamax2;
     double sumsin;
     double sumcos;
-    int mult;
+    uint mult;
+    double sumw;
     double order;
   };
   
@@ -137,26 +141,31 @@ private:
   edm::InputTag vtxCollection_;
   edm::InputTag caloCollection_;
   edm::InputTag trackCollection_;
+  edm::InputTag centrality_;
+
+  edm::Service<TFileService> fs;
   bool useECAL_;
   bool useHCAL_;
   bool useTrack_;
-  bool useTrackPtWeight_;
+  bool loadDB_;
   double minet_;
   double maxet_;
+  double effm_;
   double minpt_;
   double maxpt_;
   double minvtx_;
   double maxvtx_;
   double dzerr_;
   double chi2_;
-
   bool storeNames_;
+  bool FirstEvent;
+  CentralityProvider * centProvider;
+  HiEvtPlaneFlatten * flat[NumEPNames];
 };
 
 //
 // constants, enums and typedefs
 //
-
 
 //
 // static data member definitions
@@ -165,19 +174,17 @@ private:
 //
 // constructors and destructor
 //
-EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig)
-{
-  
-  
-  //register your products
+EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig) {
   vtxCollection_  = iConfig.getParameter<edm::InputTag>("vtxCollection_");
   caloCollection_  = iConfig.getParameter<edm::InputTag>("caloCollection_");
   trackCollection_  = iConfig.getParameter<edm::InputTag>("trackCollection_");
+  centrality_ = iConfig.getParameter<edm::InputTag>("centrality_");
+  loadDB_ = iConfig.getUntrackedParameter<bool>("loadDB_",true);
   useECAL_ = iConfig.getUntrackedParameter<bool>("useECAL_",true);
   useHCAL_ = iConfig.getUntrackedParameter<bool>("useHCAL_",true);
   useTrack_ = iConfig.getUntrackedParameter<bool>("useTrack",true);
-  useTrackPtWeight_ = iConfig.getUntrackedParameter<bool>("useTrackPtWeight_",true);
-  minet_ = iConfig.getUntrackedParameter<double>("minet_",0.2);
+
+  minet_ = iConfig.getUntrackedParameter<double>("minet_",0.3);
   maxet_ = iConfig.getUntrackedParameter<double>("maxet_",500.);
   minpt_ = iConfig.getUntrackedParameter<double>("minpt_",0.3);
   maxpt_ = iConfig.getUntrackedParameter<double>("maxpt_",2.5);
@@ -185,12 +192,28 @@ EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig)
   maxvtx_ = iConfig.getUntrackedParameter<double>("maxvtx_",50.);
   dzerr_ = iConfig.getUntrackedParameter<double>("dzerr_",10.);
   chi2_  = iConfig.getUntrackedParameter<double>("chi2_",40.);
-
   storeNames_ = 1;
+  FirstEvent = kTRUE;
   produces<reco::EvtPlaneCollection>("recoLevel");
   for(int i = 0; i<NumEPNames; i++ ) {
     rp[i] = new GenPlane(EPNames[i].data(),EPEtaMin1[i],EPEtaMax1[i],EPEtaMin2[i],EPEtaMax2[i],EPOrder[i]);
   }
+  for(int i = 0; i<NumEPNames; i++) {
+    flat[i] = new HiEvtPlaneFlatten();
+    flat[i]->Init(FlatOrder,NumFlatCentBins,CentBinCompression,EPNames[i],EPOrder[i]);
+  }
+  cout<<"====================="<<endl;
+  cout<<"EvtPlaneProducer: "<<endl;
+  cout<<"  minet_:            "<<minet_<<endl;
+  cout<<"  maxet_:            "<<maxet_<<endl;
+  cout<<"  minpt_:            "<<minpt_<<endl;
+  cout<<"  maxpt_:            "<<maxpt_<<endl; 
+  cout<<"  minvtx_:           "<<minvtx_<<endl;
+  cout<<"  maxvtx_:           "<<maxvtx_<<endl;
+  cout<<"  dzerr_             "<<dzerr_<<endl;
+  cout<<"  chi2_              "<<chi2_<<endl;
+  cout<<"====================="<<endl;
+
 }
 
 
@@ -213,9 +236,48 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
   using namespace reco;
+ 
+  //
+  //Get Centrality
+  //
+  centProvider = new CentralityProvider(iSetup);
+  centProvider->newEvent(iEvent,iSetup);
+  centProvider->raw();
+  int bin = centProvider->getBin();
 
   int vs_sell;
   float vzr_sell;
+  if(FirstEvent && loadDB_) {
+    FirstEvent = kFALSE;
+    //
+    //Get flattening parameter file.  This also contains the averages needed for momentum conserving weights
+    //
+    edm::ESHandle<RPFlatParams> flatparmsDB_;
+    iSetup.get<HeavyIonRPRcd>().get(flatparmsDB_);
+    int flatTableSize = flatparmsDB_->m_table.size();
+    cout<<"flatTableSize: "<<flatTableSize<<endl;
+    for(int i = 0; i<flatTableSize; i++) {
+      const RPFlatParams::EP* thisBin = &(flatparmsDB_->m_table[i]);
+      for(int j = 0; j<NumEPNames; j++) {
+	int indx = thisBin->RPNameIndx[j];
+	int    Hbins = flat[j]->GetHBins();
+	int    Obins = flat[j]->GetOBins();
+	if(indx>=0) {
+	  if(i<Hbins) {
+	    flat[indx]->SetXDB(i, thisBin->x[j]);
+	    flat[indx]->SetYDB(i, thisBin->y[j]);
+	  } else if(i>=Hbins && i<Hbins+Obins) {
+	    flat[indx]->SetXoffDB(i - Hbins, thisBin->x[j]);
+	    flat[indx]->SetYoffDB(i - Hbins, thisBin->y[j]);
+	  } else if (i>=Hbins+Obins) {
+	    flat[indx]->SetPtDB(i - Hbins - Obins, thisBin->x[j]);
+	    flat[indx]->SetPt2DB(i - Hbins - Obins, thisBin->y[j]);
+	  }
+	}
+      }
+    }
+  } //First event
+  
   //
   //Get Vertex
   //
@@ -230,94 +292,50 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   //
   for(int i = 0; i<NumEPNames; i++) rp[i]->reset();
   if(vzr_sell>minvtx_ && vzr_sell<maxvtx_) {
+
     //calorimetry part
     
     double tower_eta, tower_phi;
     double tower_energyet, tower_energyet_e, tower_energyet_h;
-    double s1, s2, s13,s23,s14,s24,s15,s25,s16,s26;
     Handle<CaloTowerCollection> calotower;
     iEvent.getByLabel(caloCollection_,calotower);
     
     if(calotower.isValid()){
-      
       for (CaloTowerCollection::const_iterator j = calotower->begin();j !=calotower->end(); j++) {   
 	tower_eta        = j->eta();
 	tower_phi        = j->phi();
 	tower_energyet_e   = j->emEt();
 	tower_energyet_h   = j->hadEt();
 	tower_energyet     = tower_energyet_e + tower_energyet_h;
-	
-	s1 = sin(2.*tower_phi);
-	s2 = cos(2.*tower_phi);    
-	s13 = sin(3.*tower_phi);
-	s23 = cos(3.*tower_phi);
-	s14 = sin(4.*tower_phi);
-	s24 = cos(4.*tower_phi);
-	s15 = sin(5.*tower_phi);
-	s25 = cos(5.*tower_phi);
-	s16 = sin(6.*tower_phi);
-	s26 = cos(6.*tower_phi);
-	
 	if(tower_energyet<minet_) continue;
-	if(tower_energyet>maxet_) continue;;
-
-	rp[etEcal    ]->addParticle (tower_energyet_e, s1,    s2,    tower_eta);
-	rp[etEcalP   ]->addParticle (tower_energyet_e, s1,    s2,    tower_eta);
-	rp[etEcalM   ]->addParticle (tower_energyet_e, s1,    s2,    tower_eta);
-	rp[etHcal    ]->addParticle (tower_energyet_h, s1,    s2,    tower_eta);
-	rp[etHcalP   ]->addParticle (tower_energyet_h, s1,    s2,    tower_eta);
-	rp[etHcalM   ]->addParticle (tower_energyet_h, s1,    s2,    tower_eta);
-	rp[etHF      ]->addParticle (tower_energyet,   s1,    s2,    tower_eta);
-	rp[etHFp     ]->addParticle (tower_energyet,   s1,    s2,    tower_eta);
-	rp[etHFm     ]->addParticle (tower_energyet,   s1,    s2,    tower_eta);
-	rp[etCaloHFP ]->addParticle (tower_energyet,   s1,    s2,    tower_eta);
-	rp[etCaloHFM ]->addParticle (tower_energyet,   s1,    s2,    tower_eta);
-
-	rp[etHF3     ]->addParticle (tower_energyet,   s13,   s23,   tower_eta);
-	rp[etHFp3    ]->addParticle (tower_energyet,   s13,   s23,   tower_eta);    
-	rp[etHFm3    ]->addParticle (tower_energyet,   s13,   s23,   tower_eta);
-
-	rp[etHF4     ]->addParticle (tower_energyet,   s14,   s24,   tower_eta);
-	rp[etHFp4    ]->addParticle (tower_energyet,   s14,   s24,   tower_eta);    
-	rp[etHFm4    ]->addParticle (tower_energyet,   s14,   s24,   tower_eta);
-
-	rp[etHF5     ]->addParticle (tower_energyet,   s15,   s25,   tower_eta);
-	rp[etHFp5    ]->addParticle (tower_energyet,   s15,   s25,   tower_eta);    
-	rp[etHFm5    ]->addParticle (tower_energyet,   s15,   s25,   tower_eta);
-
-	rp[etHF6     ]->addParticle (tower_energyet,   s16,   s26,   tower_eta);
-	rp[etHFp6    ]->addParticle (tower_energyet,   s16,   s26,   tower_eta);    
-	rp[etHFm6    ]->addParticle (tower_energyet,   s16,   s26,   tower_eta);
+	if(tower_energyet>maxet_) continue;
+	for(int i = 0; i<NumEPNames; i++) {
+	  if(EPDet[i]==HF) {
+	    double w = tower_energyet;
+	    if(EPOrder[i]==1 ) {
+	      if(MomConsWeight[i][0]=='y' && loadDB_ ) {
+		w = flat[i]->GetW(tower_energyet, vzr_sell, bin);
+	      }
+	      if(tower_eta<0 ) w=-w;
+	    }
+	    rp[i]->addParticle(w,sin(EPOrder[i]*tower_phi),cos(EPOrder[i]*tower_phi),tower_eta);
+	  }
+	}
       } 
     }
+
     //Tracking part
     
     double track_eta;
     double track_phi;
     double track_pt;
-#ifdef TRACKCOLLECTION  
+   
     Handle<reco::TrackCollection> tracks;
     iEvent.getByLabel(trackCollection_, tracks);
-    
     if(tracks.isValid()){
-      for(reco::TrackCollection::const_iterator j = tracks->begin(); j != tracks->end(); j++){
-	
-	//Find possible collections with command line: edmDumpEventContent *.root
-#endif
-#ifdef RECOCHARGEDCANDIDATECOLLECTION
-	edm::Handle<reco::RecoChargedCandidateCollection> trackCollection;
-	iEvent.getByLabel("allMergedPtSplit12Tracks",trackCollection);
-	//	iEvent.getByLabel("hiGoodMergedTracks",trackCollection);
-	if(trackCollection.isValid()){
-	  
-	  const reco::RecoChargedCandidateCollection * tracks = trackCollection.product();
-	  for(reco::RecoChargedCandidateCollection::const_iterator j = tracks->begin(); j != tracks->end(); j++){
-#endif  
+      for(reco::TrackCollection::const_iterator j = tracks->begin(); j != tracks->end(); j++){	
 	edm::Handle<reco::VertexCollection> vertex;
-	iEvent.getByLabel(vtxCollection_, vertex);
-	
-// find the vertex point and error
-
+	iEvent.getByLabel(vtxCollection_, vertex);	    
 	math::XYZPoint vtxPoint(0.0,0.0,0.0);
 	double vzErr =0.0, vxErr=0.0, vyErr=0.0;
 	if(vertex->size()>0) {
@@ -339,107 +357,83 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 	dzsigma = sqrt(j->dzError()*j->dzError()+vzErr*vzErr);
 	
 	// cuts for pixel tracks
-	if( isPixel )
-	  {
-	    // dz significance cut 
-	    if ( fabs(dz/dzsigma) > dzerr_ ) accepted = false;
-	    
-	    // chi2/ndof cut 
-	    if ( j->normalizedChi2() > chi2_ ) accepted = false;
-	  }
-	
+	if( isPixel ){
+	  // dz significance cut 
+	  if ( fabs(dz/dzsigma) > dzerr_ ) accepted = false;
+	  // chi2/ndof cut 
+	  if ( j->normalizedChi2() > chi2_ ) accepted = false;
+	}   
 	// cuts for full tracks
-	if ( ! isPixel)
-	  {
-	    // dz and d0 significance cuts 
-	    if ( fabs(dz/dzsigma) > 3 ) accepted = false;
-	    if ( fabs(d0/d0sigma) > 3 ) accepted = false;
-	    
-	    // pt resolution cut
-	    if ( j->ptError()/j->pt() > 0.05 ) accepted = false;
-	    
-	    // number of valid hits cut
-	    if ( j->numberOfValidHits() < 12 ) accepted = false;
-	  }
+	if ( ! isPixel) {
+	  // dz and d0 significance cuts 
+	  if ( fabs(dz/dzsigma) > 3 ) accepted = false;
+	  if ( fabs(d0/d0sigma) > 3 ) accepted = false;
+	  // pt resolution cut
+	  if ( j->ptError()/j->pt() > 0.05 ) accepted = false;
+	  // number of valid hits cut
+	  if ( j->numberOfValidHits() < 12 ) accepted = false;
+	}
 	if( accepted ) {
 	  track_eta = j->eta();
 	  track_phi = j->phi();
 	  track_pt = j->pt();
-	  double s =sin(2*track_phi);
-	  double c =cos(2*track_phi);
-	  double s3 =sin(3*track_phi);
-	  double c3 =cos(3*track_phi);
-	  double s4 =sin(4*track_phi);
-	  double c4 =cos(4*track_phi);
-	  double s5 =sin(5*track_phi);
-	  double c5 =cos(5*track_phi);
-	  double s6 =sin(6*track_phi);
-	  double c6 =cos(6*track_phi);
-	  double w = 1;
-	  if(useTrackPtWeight_) {
-	    w = track_pt;
-	    if(w>2.5) w=2.0;   //v2 starts decreasing above ~2.5 GeV/c
-	  }
 	  if(track_pt<minpt_) continue;
 	  if(track_pt>maxpt_) continue;
-	  rp[EvtPlaneFromTracksMidEta]->addParticle(w,s,c,track_eta);
-	  rp[EvtPTracksPosEtaGap]->addParticle(w,s,c,track_eta);
-	  rp[EvtPTracksNegEtaGap]->addParticle(w,s,c,track_eta);
-	  rp[EPTracksMid3]->addParticle(w,s3,c3,track_eta);
-	  rp[EPTracksPos3]->addParticle(w,s3,c3,track_eta);
-	  rp[EPTracksNeg3]->addParticle(w,s3,c3,track_eta);
-	  rp[EPTracksMid4]->addParticle(w,s4,c4,track_eta);
-	  rp[EPTracksPos4]->addParticle(w,s4,c4,track_eta);
-	  rp[EPTracksNeg4]->addParticle(w,s4,c4,track_eta);
-	  rp[EPTracksMid5]->addParticle(w,s5,c5,track_eta);
-	  rp[EPTracksPos5]->addParticle(w,s5,c5,track_eta);
-	  rp[EPTracksNeg5]->addParticle(w,s5,c5,track_eta);
-	  rp[EPTracksMid6]->addParticle(w,s6,c6,track_eta);
-	  rp[EPTracksPos6]->addParticle(w,s6,c6,track_eta);
-	  rp[EPTracksNeg6]->addParticle(w,s6,c6,track_eta);
-	  
-	}
-	
-      }
+	  for(int i = 0; i<NumEPNames; i++) {
+	    if(EPDet[i]==Tracker) {
+	      double w = track_pt;
+	      if(w>2.5) w=2.0;   //v2 starts decreasing above ~2.5 GeV/c
+	      if(EPOrder[i]==1) {
+		if(MomConsWeight[i][0]=='y' && loadDB_) {
+		  w = flat[i]->GetW(track_pt, vzr_sell, bin);
+		}
+		if(track_eta<0) w=-w;
+	      }
+	      rp[i]->addParticle(w,sin(EPOrder[i]*track_phi),cos(EPOrder[i]*track_phi),track_eta);
+	    }
+	  }
+	}  
+      } //end for
     }
-      }
-      std::auto_ptr<EvtPlaneCollection> evtplaneOutput(new EvtPlaneCollection);
-      
-  EvtPlane *ep[NumEPNames];
-  
-  double ang=-10;
-  double sv = 0;
-  double cv = 0;
+    
+    std::auto_ptr<EvtPlaneCollection> evtplaneOutput(new EvtPlaneCollection);
+    EvtPlane *ep[NumEPNames];
+    
+    double ang=-10;
+    double sv = 0;
+    double cv = 0;
+    uint epmult = 0;
 
-  for(int i = 0; i<NumEPNames; i++) {
-    rp[i]->getAngle(ang,sv,cv);
-    if(storeNames_) ep[i] = new EvtPlane(ang,sv,cv,EPNames[i]);
-    else ep[i] = new EvtPlane(ang,sv,cv,"");
-  }
-  if(useTrack_) {
-    for(int i = 0; i<9; i++) {
-      evtplaneOutput->push_back(*ep[i]);
-    }  
-  }
-  for(int i = 9; i<NumEPNames; i++) {
-    if(useECAL_ && !useHCAL_) {
-      if(EPNames[i].rfind("Ecal")!=string::npos) {
-	evtplaneOutput->push_back(*ep[i]);
-      }
-    } else if (useHCAL_ && !useECAL_) {
-      if(EPNames[i].rfind("Hcal")!=string::npos) {
-	evtplaneOutput->push_back(*ep[i]);
-      }
-    }else if (useECAL_ && useHCAL_) {
-      evtplaneOutput->push_back(*ep[i]);
+    for(int i = 0; i<NumEPNames; i++) {
+      rp[i]->getAngle(ang,sv,cv,epmult);
+      if(storeNames_) ep[i] = new EvtPlane(ang,sv,cv,epmult,EPNames[i]);
+      else ep[i] = new EvtPlane(ang,sv,cv,epmult,"");
     }
+    if(useTrack_) {
+      for(int i = 0; i<15; i++) {
+	evtplaneOutput->push_back(*ep[i]);
+      }  
+    }
+    for(int i = 15; i<NumEPNames; i++) {
+      if(useECAL_ && !useHCAL_) {
+	if(EPNames[i].rfind("Ecal")!=string::npos) {
+	  evtplaneOutput->push_back(*ep[i]);
+	}
+      } else if (useHCAL_ && !useECAL_) {
+	if(EPNames[i].rfind("Hcal")!=string::npos) {
+	  evtplaneOutput->push_back(*ep[i]);
+	}
+      }else if (useECAL_ && useHCAL_) {
+	evtplaneOutput->push_back(*ep[i]);
+      }
+    }
+    
+    iEvent.put(evtplaneOutput, "recoLevel");
+    //  storeNames_ = 0;
   }
-  
-  iEvent.put(evtplaneOutput, "recoLevel");
-  //  storeNames_ = 0;
 }
-  
-  // ------------ method called once each job just before starting event loop  ------------
+
+// ------------ method called once each job just before starting event loop  ------------
 void 
 EvtPlaneProducer::beginJob()
 {

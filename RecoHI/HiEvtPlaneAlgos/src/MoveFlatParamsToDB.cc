@@ -108,6 +108,7 @@ private:
 MoveFlatParamsToDB::MoveFlatParamsToDB(const edm::ParameterSet& iConfig)
 
 {
+  rpFlat = new RPFlatParams();
   cout<<"Enter MoveFlatParamsToDB"<<endl;
   //now do what ever initialization is needed
   inFile = new TFile("data/rpflat_combined.root");
@@ -125,7 +126,7 @@ MoveFlatParamsToDB::MoveFlatParamsToDB(const edm::ParameterSet& iConfig)
   while(indx >=0 && indx<NumEPNames) {
     int EPNameIndx = -1;
     TString name = list->At(indx)->GetName();
-    if(!name.Contains("cent")&&!name.Contains("vtx")&&!name.Contains("MidEtaTrackRescor")) {
+    if(!name.Contains("cent")&&!name.Contains("vtx")&&!name.Contains("MidEtaTrackRescor")&&!name.Contains("tree")) {
       for(int i = 0; i<NumEPNames; i++) {
 	if(name.CompareTo(EPNames[i])==0) {
 	  EPNameIndx = i;
@@ -147,7 +148,7 @@ MoveFlatParamsToDB::MoveFlatParamsToDB(const edm::ParameterSet& iConfig)
 	y[cnt]->Divide(xycnt[cnt]);
       }
       ++cnt;
-      if(cnt>NumEPNames||cnt>50) {
+      if(cnt>NumEPNames||cnt>rpFlat->MaxEPAllowed) {
 	cout<<"Maximum number of reaction planes exceeded!"<<endl;
 	break;
       }
@@ -181,7 +182,6 @@ void
 MoveFlatParamsToDB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
-  rpFlat = new RPFlatParams();
   rpFlat->m_table.reserve(x[0]->GetNbinsX());
   cout<<"Size of table: "<<x[0]->GetNbinsX()<<endl;
   for(int j = 0; j<x[0]->GetNbinsX();j++) {

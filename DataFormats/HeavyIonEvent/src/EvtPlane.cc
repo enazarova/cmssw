@@ -29,12 +29,13 @@
 #include "DataFormats/HeavyIonEvent/interface/EvtPlane.h"
 
 using namespace reco;
-
-EvtPlane::EvtPlane(double planeA,double sumSin, double sumCos, std::string label)
+using namespace std;
+EvtPlane::EvtPlane(double planeA,double sumSin, double sumCos, uint mult, std::string label)
   : 
    angle_(planeA),
    sumSin_(sumSin),
    sumCos_(sumCos),
+   mult_(mult),
    label_(label)
 {
   // default constructor

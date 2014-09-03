@@ -2,16 +2,14 @@
 #define __RPFlatParams_h__
 
 #include <vector>
+
 class RPFlatParams{
  public:
+  static const int MaxEPAllowed = 30;
   struct EP {
-    float x[50];
-    float y[50];
-    float xSub1[50];
-    float ySub1[50];
-    float xSub2[50];
-    float ySub2[50];
-    int RPNameIndx[50];
+    float x[MaxEPAllowed];
+    float y[MaxEPAllowed];
+    int RPNameIndx[MaxEPAllowed];
   };
   RPFlatParams(){}
   virtual ~RPFlatParams(){}
