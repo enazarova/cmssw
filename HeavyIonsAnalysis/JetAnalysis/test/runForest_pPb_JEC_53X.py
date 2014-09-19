@@ -1,10 +1,6 @@
 #!/usr/bin/env python2
-# Run the foresting configuration on PbPb in CMSSW_5_3_X, using the new HF/Voronoi jets
 # Author: Alex Barbieri
 # Date: 2013-10-15
-
-# change this to true to switch to the Pbp JEC
-secondHalfpPbJEC = False
 
 import FWCore.ParameterSet.Config as cms
 process = cms.Process('HiForest')
@@ -63,14 +59,9 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'STARTHI53_V27::All', '')
 
 from HeavyIonsAnalysis.Configuration.CommonFunctions_cff import overrideCentrality
-from HeavyIonsAnalysis.Configuration.CommonFunctions_cff import overrideJEC_pPb5020
-from HeavyIonsAnalysis.Configuration.CommonFunctions_cff import overrideJEC_Pbp5020
+from HeavyIonsAnalysis.Configuration.CommonFunctions_cff import overrideJEC_NULL
 overrideCentrality(process)
-if secondHalfpPbJEC:
-    overrideJEC_MC_Pbp5020(process)
-    #overrideJEC_Pbp5020(process)
-else :
-    overrideJEC_pPb5020(process)
+overrideJEC_NULL(process)
 
 process.HeavyIonGlobalParameters = cms.PSet(
     centralityVariable = cms.string("HFtowersTrunc"),
@@ -100,28 +91,56 @@ process.hiGenParticles.srcVector = cms.vstring('generator')
 process.hiEvtPlane.vtxCollection_ = cms.InputTag("offlinePrimaryVerticesWithBS")
 process.hiEvtPlane.trackCollection_ = cms.InputTag("generalTracks")
 
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.HiGenJetsCleaned_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.HiGenJetsCleaned_JEC_cff')
 
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu3CaloJetSequence_pPb_mc_cff')
-#process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs3CaloJetSequence_pPb_mc_cff')
-#process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs3PFJetSequence_pPb_mc_cff')
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu3PFJetSequence_pPb_mc_cff')
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak3PFJetSequence_pPb_mc_cff')
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak3CaloJetSequence_pPb_mc_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu1CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs1CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs1PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu1PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak1PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak1CaloJetSequence_pPb_jec_cff')
 
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu4CaloJetSequence_pPb_mc_cff')
-#process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs4CaloJetSequence_pPb_mc_cff')
-#process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs4PFJetSequence_pPb_mc_cff')
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu4PFJetSequence_pPb_mc_cff')
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak4PFJetSequence_pPb_mc_cff')
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak4CaloJetSequence_pPb_mc_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu2CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs2CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs2PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu2PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak2PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak2CaloJetSequence_pPb_jec_cff')
 
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu5CaloJetSequence_pPb_mc_cff')
-#process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs5CaloJetSequence_pPb_mc_cff')
-#process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs5PFJetSequence_pPb_mc_cff')
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu5PFJetSequence_pPb_mc_cff')
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak5PFJetSequence_pPb_mc_cff')
-process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak5CaloJetSequence_pPb_mc_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu3CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs3CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs3PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu3PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak3PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak3CaloJetSequence_pPb_jec_cff')
+
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu4CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs4CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs4PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu4PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak4PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak4CaloJetSequence_pPb_jec_cff')
+
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu5CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs5CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs5PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu5PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak5PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak5CaloJetSequence_pPb_jec_cff')
+
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu6CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs6CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs6PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu6PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak6PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak6CaloJetSequence_pPb_jec_cff')
+
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu7CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs7CaloJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akVs7PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.akPu7PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak7PFJetSequence_pPb_jec_cff')
+process.load('HeavyIonsAnalysis.JetAnalysis.jets.ak7CaloJetSequence_pPb_jec_cff')
 
 # Difference between HiReRecoJets_pp_cff and HiReRecoJets_HI_cff is
 # particle flow collection used.
@@ -136,26 +155,54 @@ process.jetSequences = cms.Sequence(process.voronoiBackgroundCalo +
                                     process.hiReRecoCaloJets +
                                     process.hiReRecoPFJets +
 
+                                    process.akPu1CaloJetSequence +
+                                    process.akVs1CaloJetSequence +
+                                    process.akVs1PFJetSequence +
+                                    process.akPu1PFJetSequence +
+                                    process.ak1PFJetSequence +
+                                    process.ak1CaloJetSequence +
+
+                                    process.akPu2CaloJetSequence +
+                                    process.akVs2CaloJetSequence +
+                                    process.akVs2PFJetSequence +
+                                    process.akPu2PFJetSequence +
+                                    process.ak2PFJetSequence +
+                                    process.ak2CaloJetSequence +
+
                                     process.akPu3CaloJetSequence +
-                                    #process.akVs3CaloJetSequence +
-                                    #process.akVs3PFJetSequence +
+                                    process.akVs3CaloJetSequence +
+                                    process.akVs3PFJetSequence +
                                     process.akPu3PFJetSequence +
                                     process.ak3PFJetSequence +
                                     process.ak3CaloJetSequence +
 
                                     process.akPu4CaloJetSequence +
-                                    #process.akVs4CaloJetSequence +
-                                    #process.akVs4PFJetSequence +
+                                    process.akVs4CaloJetSequence +
+                                    process.akVs4PFJetSequence +
                                     process.akPu4PFJetSequence +
                                     process.ak4PFJetSequence +
                                     process.ak4CaloJetSequence +
 
                                     process.akPu5CaloJetSequence +
-                                    #process.akVs5CaloJetSequence +
-                                    #process.akVs5PFJetSequence +
+                                    process.akVs5CaloJetSequence +
+                                    process.akVs5PFJetSequence +
                                     process.akPu5PFJetSequence +
                                     process.ak5PFJetSequence +
-                                    process.ak5CaloJetSequence
+                                    process.ak5CaloJetSequence +
+
+                                    process.akPu6CaloJetSequence +
+                                    process.akVs6CaloJetSequence +
+                                    process.akVs6PFJetSequence +
+                                    process.akPu6PFJetSequence +
+                                    process.ak6PFJetSequence +
+                                    process.ak6CaloJetSequence +
+
+                                    process.akPu7CaloJetSequence +
+                                    process.akVs7CaloJetSequence +
+                                    process.akVs7PFJetSequence +
+                                    process.akPu7PFJetSequence +
+                                    process.ak7PFJetSequence +
+                                    process.ak7CaloJetSequence
 
                                     )
 

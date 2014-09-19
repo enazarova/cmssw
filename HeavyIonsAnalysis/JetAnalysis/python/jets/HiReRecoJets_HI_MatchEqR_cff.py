@@ -108,6 +108,37 @@ akVs6PFJets
 akVs7PFJets
 )
 
+
+hiReRecoPFJetsMatchEqRJetRAA = cms.Sequence(
+voronoiBackgroundPFEqualizeR0p2
++
+voronoiBackgroundPFEqualizeR0p4
++
+voronoiBackgroundPFEqualizeR0p5
++
+# voronoiBackgroundPFEqualizeR0p6
+# +
+# voronoiBackgroundPFEqualizeR0p7
+# +
+akPu2PFJets
++
+akPu3PFJets
++
+akPu3CaloJets
++
+akPu4PFJets
++
+akVs2PFJets
++
+akVs3CaloJets
++
+akVs3PFJets
++
+akVs4PFJets
++
+akVs5PFJets
+)
+
 hiReRecoCaloJetsMatchEqR = cms.Sequence(
 voronoiBackgroundCaloEqualizeR0p2
 +

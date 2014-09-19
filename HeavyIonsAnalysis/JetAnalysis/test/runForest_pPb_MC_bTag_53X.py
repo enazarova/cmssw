@@ -8,7 +8,7 @@ hiTrackQuality = "highPurity"              # iterative tracks
 hltProcess="HISIGNAL" #some embedding has this as HLT instead
 
 # change this to true to switch to the Pbp JEC
-secondHalfpPbJEC = False
+secondHalfpPbJEC = True
 
 import FWCore.ParameterSet.Config as cms
 process = cms.Process('HiForest')
@@ -37,13 +37,14 @@ process.source = cms.Source("PoolSource",
                             duplicateCheckMode = cms.untracked.string("noDuplicateCheck"),
                             fileNames = cms.untracked.vstring(
                                     #"/store/user/kjung/Hijing_PPb502_MinimumBias/pPb_BFilterSampleRECO_pthat15/5dc89fb1319c58a400229c5d020a3799/RecoPythiaBJet_Apr14Prod_15_22_1_7MC.root"
-                                    #"file:/home/jung68/MCProjects/CMSSW_5_3_19/src/testRECO.root"
-                                    "file:/home/jung68/CMSSW_5_3_15/src/step3_RAW2DIGI_L1Reco_RECO.root"
+                                    "file:/home/jung68/MCProjects/CMSSW_5_3_19/src/HIJINGemb_Dzero_TuneZ2star_5TeV_RECO.root"
+                                    #"file:/home/jung68/CMSSW_5_3_15/src/step3_RAW"
+                                    #"/store/user/kjung/Hijing_PPb502_MinimumBias/HIJING_D02KpiEmbed_502TeV_July14Prod_v1_RECO/fe29b51ccee4ce924105ae4d13f1a84a/HIJINGemb_Dzero_TuneZ2star_5TeV_RECO_35_1_PwG.root"
                                     ))
 
 # Number of events we want to process, -1 = all events
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10))
+    input = cms.untracked.int32(-1))
 
 
 #####################################################################################
@@ -66,15 +67,14 @@ process.load('FWCore.MessageService.MessageLogger_cfi')
 
 # PbPb 53X MC
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'STARTHI53_V27::All', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, 'STARTHI53_V28::All', '')
 
-from HeavyIonsAnalysis.Configuration.CommonFunctions_cff import overrideCentrality
-from HeavyIonsAnalysis.Configuration.CommonFunctions_cff import overrideJEC_pPb5020
-from HeavyIonsAnalysis.Configuration.CommonFunctions_cff import overrideJEC_Pbp5020
+from HeavyIonsAnalysis.Configuration.CommonFunctions_cff import *
 overrideCentrality(process)
 if secondHalfpPbJEC:
-    overrideJEC_Pbp5020(process)
-else :
+    overrideJEC_MC_Pbp5020(process)
+    #overrideJEC_Pbp5020(process)
+else:
     overrideJEC_pPb5020(process)
 
 process.HeavyIonGlobalParameters = cms.PSet(
@@ -97,6 +97,11 @@ process.TFileService = cms.Service("TFileService",
 # Additional Reconstruction and Analysis: Main Body
 #####################################################################################
 
+#OpenHF Additional Loads
+process.load("CondCore.DBCommon.CondDBCommon_cfi")
+process.load("CondCore.DBCommon.CondDBSetup_cfi")
+
+#back to originally scheduled programming...
 process.load('Configuration.StandardSequences.Generator_cff')
 process.load('RecoJets.Configuration.GenJetParticles_cff')
 
@@ -224,7 +229,31 @@ process.globalMuons.TrackerCollectionLabel = "generalTracks"
 process.muons.TrackExtractorPSet.inputTrackCollection = "generalTracks"
 process.muons.inputCollectionLabels = ["generalTracks", "globalMuons", "standAloneMuons:UpdatedAtVtx", "tevMuons:firstHit", "tevMuons:picky", "tevMuons:dyt"]
 
+## Additional Tweaks for c-jets
 process.hiPartons.ptCut = cms.double(10)
+process.HiGenParticleAna.stableOnly = cms.untracked.bool(False)
+
+##more tweaks for OpenHF stuff
+process.HFtree = cms.EDAnalyzer(
+        "HFTree",
+        verbose      = cms.untracked.int32(1),
+        printFrequency = cms.untracked.int32(1000),
+        requireCand  =  cms.untracked.bool(True),
+        fReducedTree  =  cms.untracked.bool(True),
+        isMC = cms.untracked.bool(True)
+        )
+
+process.load("UserCode.OpenHF.HFRecoStuff_cff")
+process.load("UserCode.OpenHF.HFCharm_cff")
+
+process.OpenHfTree_step = cms.Path(
+        process.recoStuffSequence*
+        process.charmSequence*
+        process.HFtree
+        )
+
+##---------------------------------------------
+
 process.genStep = cms.Path(process.hiGenParticles *
                            process.hiGenParticlesForJets *
                            process.genPartons *
@@ -257,12 +286,14 @@ process.ana_step = cms.Path(process.pACentrality +
                             process.ppTrack)
 
 process.load('HeavyIonsAnalysis.JetAnalysis.EventSelection_cff')
+process.hltJetHI.TriggerResultsTag = cms.InputTag("TriggerResults","",hltProcess)
 process.phltJetHI = cms.Path( process.hltJetHI )
-#process.pcollisionEventSelection = cms.Path(process.collisionEventSelection)
+process.pcollisionEventSelection = cms.Path(process.collisionEventSelection*process.PAcollisionEventSelection)
 process.pHBHENoiseFilter = cms.Path( process.HBHENoiseFilter )
 process.phfCoincFilter = cms.Path(process.hfCoincFilter )
 process.phfCoincFilter3 = cms.Path(process.hfCoincFilter3 )
-#process.pprimaryVertexFilter = cms.Path(process.primaryVertexFilter )
+process.primaryVertexFilter.src = "offlinePrimaryVerticesWithBS"
+process.pprimaryVertexFilter = cms.Path(process.primaryVertexFilter )
 process.phltPixelClusterShapeFilter = cms.Path(process.siPixelRecHits*process.hltPixelClusterShapeFilter )
 process.phiEcalRecHitSpikeFilter = cms.Path(process.hiEcalRecHitSpikeFilter )
 
@@ -276,9 +307,18 @@ process.hltanalysis.l1GtObjectMapRecord = cms.InputTag("hltL1GtObjectMap","",hlt
 process.hltanalysis.mctruth = cms.InputTag("hiGenParticles","",hltProcess)
 
 process.hltobject.processName = cms.string(hltProcess)
+process.hltobject.treeName = cms.string("JetTriggers")
 process.hltobject.triggerNames = cms.vstring("HLT_PAJet20_NoJetID_v1","HLT_PAJet40_NoJetID_v1","HLT_PAJet60_NoJetID_v1","HLT_PAJet80_NoJetID_v1","HLT_PAJet100_NoJetID_v1")
 process.hltobject.triggerResults = process.hltanalysis.hltresults
 process.hltobject.triggerEvent = cms.InputTag("hltTriggerSummaryAOD","",hltProcess)
 
-process.hltAna = cms.Path(process.hltanalysis*process.hltobject)
+process.photonHltObject = process.hltobject.clone()
+process.photonHltObject.treeName = cms.string("PhotonTriggers")
+process.photonHltObject.triggerNames = cms.vstring("HLT_PAPhoton10_NoCaloIdVL_v1","HLT_PAPhoton15_NoCaloIdVL_v1","HLT_PAPhoton20_NoCaloIdVL_v1","HLT_PAPhoton30_NoCaloIdVL_v1")
+
+process.trackHltObject = process.hltobject.clone()
+process.trackHltObject.treeName = cms.string("TrackTriggers")
+process.trackHltObject.triggerNames = cms.vstring("HLT_PAFullTrack12_v2","HLT_PAFullTrack20_v2","HLT_PAFullTrack30_v2")
+
+process.hltAna = cms.Path(process.hltanalysis*process.hltobject*process.photonHltObject*process.trackHltObject)
 process.pAna = cms.EndPath(process.skimanalysis)

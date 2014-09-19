@@ -198,6 +198,8 @@ process.globalMuons.TrackerCollectionLabel = "generalTracks"
 process.muons.TrackExtractorPSet.inputTrackCollection = "generalTracks"
 process.muons.inputCollectionLabels = ["generalTracks", "globalMuons", "standAloneMuons:UpdatedAtVtx", "tevMuons:firstHit", "tevMuons:picky", "tevMuons:dyt"]
 
+process.load('HeavyIonsAnalysis.EventAnalysis.hltanalysis_cff')
+
 #Filtering
 #############################################################
 # To filter on an HLT trigger path, uncomment the lines below, add the
@@ -207,14 +209,13 @@ process.muons.inputCollectionLabels = ["generalTracks", "globalMuons", "standAlo
 # Minimum bias trigger selection (later runs)
 #process.load("HLTrigger.HLTfilters.hltHighLevel_cfi")
 #process.skimFilter = process.hltHighLevel.clone()
-#process.skimFilter.HLTPaths = ["HLT_HIMinBiasHfOrBSC_v1"]
+#process.skimFilter.HLTPaths = ["HLT_PixelTracks_Multiplicity*"]
 
 #process.superFilterSequence = cms.Sequence(process.skimFilter)
 #process.superFilterPath = cms.Path(process.superFilterSequence)
 #process.skimanalysis.superFilters = cms.vstring("superFilterPath")
 ################################################################
 
-process.load('HeavyIonsAnalysis.EventAnalysis.hltanalysis_cff')
 process.hltobject.triggerNames = cms.vstring("HLT_PAJet100_NoJetID_v1","HLT_PAJet80_NoJetID_v1","HLT_PAJet60_NoJetID_v1","HLT_PAJet40_NoJetID_v1","HLT_PAJet20_NoJetID_v1")
 
 process.ana_step = cms.Path(process.hltanalysis +

@@ -8,7 +8,7 @@
    Description: <one line class summary>
 
    Implementation:
-   Prepare the Treack Tree for analysis
+   Prepare the Track Tree for analysis
 */
 //
 // Original Author:  Yilmaz Yetkin, Yen-Jie Lee
@@ -25,6 +25,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <functional>
 
 // CMSSW user include files
 #include "DataFormats/Common/interface/DetSetAlgorithm.h"
@@ -53,7 +54,6 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingVertex.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingVertexContainer.h"
-#include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimGeneral/HepPDTRecord/interface/ParticleDataTable.h"
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
@@ -76,6 +76,8 @@
 #include "SimTracker/TrackAssociation/interface/TrackAssociatorByChi2.h"
 #include "DataFormats/TrackReco/interface/DeDxData.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+
+#include "HeavyIonsAnalysis/TrackAnalysis/interface/TrkAnalyzerUtils.h"
 
 // Heavyion
 #include "DataFormats/HeavyIonEvent/interface/Centrality.h"
@@ -105,6 +107,7 @@ using namespace reco;
 #define MAXTRACKS 50000
 #define MAXVTX 100
 #define MAXQUAL 5
+#define MAXMATCH 5
 
 const HepMC::GenParticle * getGpMother(const HepMC::GenParticle *gp) {
   if (gp != 0) {
@@ -213,8 +216,8 @@ struct TrackEvent{
 
   // -- sim tracks --
   int   nParticle;
-  float pStatus[MAXTRACKS];
-  float pPId[MAXTRACKS];
+  int pStatus[MAXTRACKS];
+  int pPId[MAXTRACKS];
   float pEta[MAXTRACKS];
   float pPhi[MAXTRACKS];
   float pPt[MAXTRACKS];
@@ -222,11 +225,13 @@ struct TrackEvent{
   float pAccPair[MAXTRACKS];
   int pCharge[MAXTRACKS];
 
-  float pNRec[MAXTRACKS];
+  int pNRec[MAXTRACKS];
   int   pNHit[MAXTRACKS];
   // matched track info (if matched)
   float mtrkPt[MAXTRACKS];
   float mtrkPtError[MAXTRACKS];
+  float mtrkEta[MAXTRACKS];
+  float mtrkPhi[MAXTRACKS];
   int   mtrkNHit[MAXTRACKS];
   int   mtrkNlayer[MAXTRACKS];
   int   mtrkNlayer3D[MAXTRACKS];
@@ -242,11 +247,14 @@ struct TrackEvent{
   float mtrkDxy2[MAXTRACKS];
   float mtrkDxyError2[MAXTRACKS];
   float mtrkAlgo[MAXTRACKS];
+  
   // calo compatibility
   int mtrkPfType[MAXTRACKS];
   float mtrkPfCandPt[MAXTRACKS];
   float mtrkPfSumEcal[MAXTRACKS];
   float mtrkPfSumHcal[MAXTRACKS];
+
+  int matchedGenID[MAXTRACKS][MAXMATCH];
 };
 
 class TrackAnalyzer : public edm::EDAnalyzer {
@@ -267,6 +275,8 @@ private:
   std::pair<bool,bool> isAccepted(TrackingParticle & tp);
   int getLayerId(const PSimHit&);
   bool hitDeadPXF(const reco::Track& tr);
+  //const TrackingParticle* doRecoToTpMatch(reco::RecoToSimCollection recSimColl, const reco::TrackRef &in);
+  //vector<int> matchTpToGen(const edm::Event& iEvent, const TrackingParticle* tparticle);
 
   template <typename TYPE>
   void                          getProduct(const std::string name, edm::Handle<TYPE> &prod,
@@ -545,8 +555,6 @@ TrackAnalyzer::fillVertices(const edm::Event& iEvent){
   }
 }
 
-
-
 //--------------------------------------------------------------------------------------------------
 void
 TrackAnalyzer::fillTracks(const edm::Event& iEvent, const edm::EventSetup& iSetup){
@@ -691,13 +699,11 @@ TrackAnalyzer::fillTracks(const edm::Event& iEvent, const edm::EventSetup& iSetu
       pev_.trkMPId[pev_.nTrk]=-999;
       pev_.trkGMPId[pev_.nTrk]=-999;
 
-      reco::RecoToSimCollection::const_iterator matchedSim = recSimColl.find(edm::RefToBase<reco::Track>(trackRef));
-
-      if(matchedSim == recSimColl.end()){
-	pev_.trkFake[pev_.nTrk]=1;
-      }else{
-	const TrackingParticle* tparticle = matchedSim->val[0].first.get();
-	pev_.trkStatus[pev_.nTrk]=tparticle->status();
+      //match tracking particle to the reco particle
+      const TrackingParticle* tparticle = doRecoToTpMatch(recSimColl, trackRef);//matchedSim->val[0].first.get();
+      if(!tparticle) pev_.trkFake[pev_.nTrk]=1;
+      else{
+        pev_.trkStatus[pev_.nTrk]=tparticle->status();
 	pev_.trkPId[pev_.nTrk]=tparticle->pdgId();
 	if (tparticle->parentVertex().isNonnull() && !tparticle->parentVertex()->sourceTracks().empty()) {
 	  pev_.trkMPId[pev_.nTrk]=tparticle->parentVertex()->sourceTracks()[0]->pdgId();
@@ -709,10 +715,15 @@ TrackAnalyzer::fillTracks(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	  if (genMom) {
 	    pev_.trkGMPId[pev_.nTrk] = genMom->pdg_id();
 	  }
-	}
+        }
+
+        //now match the tracking particle to the gen-level particle
+        vector<int> tempBarcode = matchTpToGen(iEvent, tparticle);
+        for(unsigned int ibarcode=0; ibarcode<tempBarcode.size(); ibarcode++){
+            pev_.matchedGenID[pev_.nTrk][ibarcode] = tempBarcode.at(ibarcode);
+        }
       }
     }
-
 
     if (doTrackExtra_) {
       // Very rough estimation of the expected position of the Pixel Hit
@@ -755,6 +766,18 @@ TrackAnalyzer::fillTracks(const edm::Event& iEvent, const edm::EventSetup& iSetu
     pev_.nTrk++;
   }
 
+}
+
+//-------------- Fill mother particle info via the production vertex -----------------
+const HepMC::GenParticle * getGpMother2(const HepMC::GenParticle *gp) {
+        if ( gp != 0 && gp->production_vertex()) {
+                    //         cout << "get production vertex" << endl;
+                    const HepMC::GenVertex *vtx = gp->production_vertex();
+                            if (vtx != 0 && vtx->particles_in_size() > 0) {
+                                            return *vtx->particles_in_const_begin();
+                                                    }
+                                }
+            return 0;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -828,15 +851,15 @@ TrackAnalyzer::fillSimTracks(const edm::Event& iEvent, const edm::EventSetup& iS
 	      (tmtr->pt() > trackPtMin_)) nrec++;
 	}
       }
+
       // remove the association if the track hits the bed region in FPIX
       // nrec>0 since we don't need it for nrec=0 case
+      mtrk = rt.begin()->first.get();
       if(fiducialCut_ && nrec>0 && hitDeadPXF(*mtrk)) nrec=0;
-      //cout << "simtrk: " << tp->pdgId() << " pt: " << tp->pt() << " nrec: " << nrec << endl;
 
       // Fill matched rec track info
       pev_.pNRec[pev_.nParticle] = nrec;
       pev_.mtrkQual[pev_.nParticle] = 0;
-      mtrk = rt.begin()->first.get();
 
       pev_.mtrkPt[pev_.nParticle] = mtrk->pt();
       pev_.mtrkPtError[pev_.nParticle] = mtrk->ptError();
@@ -1211,18 +1234,19 @@ TrackAnalyzer::beginJob()
     trackTree_->Branch("trkPId",&pev_.trkPId,"trkPId[nTrk]/F");
     trackTree_->Branch("trkMPId",&pev_.trkMPId,"trkMPId[nTrk]/F");
     trackTree_->Branch("trkGMPId",&pev_.trkGMPId,"trkGMPId[nTrk]/F");
+    trackTree_->Branch("matchedGenID",&pev_.matchedGenID,"matchedGenID[nTrk][5]/I");
 
     if(fillSimTrack_){
 
       trackTree_->Branch("nParticle",&pev_.nParticle,"nParticle/I");
-      trackTree_->Branch("pStatus",&pev_.pStatus,"pStatus[nParticle]/F");
-      trackTree_->Branch("pPId",&pev_.pPId,"pPId[nParticle]/F");
+      trackTree_->Branch("pStatus",&pev_.pStatus,"pStatus[nParticle]/I");
+      trackTree_->Branch("pPId",&pev_.pPId,"pPId[nParticle]/I");
       trackTree_->Branch("pEta",&pev_.pEta,"pEta[nParticle]/F");
       trackTree_->Branch("pPhi",&pev_.pPhi,"pPhi[nParticle]/F");
       trackTree_->Branch("pPt",&pev_.pPt,"pPt[nParticle]/F");
       trackTree_->Branch("pAcc",&pev_.pAcc,"pAcc[nParticle]/F");
       trackTree_->Branch("pAccPair",&pev_.pAccPair,"pAccPair[nParticle]/F");
-      trackTree_->Branch("pNRec",&pev_.pNRec,"pNRec[nParticle]/F");
+      trackTree_->Branch("pNRec",&pev_.pNRec,"pNRec[nParticle]/I");
       trackTree_->Branch("pNHit",&pev_.pNHit,"pNHit[nParticle]/I");
       trackTree_->Branch("mtrkPt",&pev_.mtrkPt,"mtrkPt[nParticle]/F");
       trackTree_->Branch("mtrkPtError",&pev_.mtrkPtError,"mtrkPtError[nParticle]/F");
