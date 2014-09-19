@@ -28,7 +28,7 @@ process.HiForest.HiForestVersion = cms.untracked.string(version)
 process.source = cms.Source("PoolSource",
                             duplicateCheckMode = cms.untracked.string("noDuplicateCheck"),
                             fileNames = cms.untracked.vstring(
-                                "file:/data/richard/MC_TESTS/pPb_RECO.root"
+                                "/store/himc/HiWinter13/Pythia_AllQCDPhotons_PtHat15_TuneZ2_5020GeV/GEN-SIM-RECO/pa_STARTHI53_V27-v1/00000/0C16C990-E5B8-E311-A370-7845C4FC3C6B.root"
                             ))
 
 # Number of events we want to process, -1 = all events
@@ -237,6 +237,7 @@ process.ppTrack.pfCandSrc = cms.InputTag("particleFlow")
 
 # Disable this for now, causes problems.
 process.ppTrack.doPFMatching = cms.untracked.bool(False)
+process.ppTrack.doSimTrack = cms.untracked.bool(False)
 
 #####################
 # photons
@@ -282,8 +283,8 @@ process.ana_step = cms.Path(process.pACentrality +
                             process.rechitAna +
 #temp                            process.hltMuTree +
                             process.HiForest +
-                            process.cutsTPForFak +
-                            process.cutsTPForEff +
+                            #process.cutsTPForFak +
+                            #process.cutsTPForEff +
                             process.ppTrack)
 
 process.load('HeavyIonsAnalysis.JetAnalysis.EventSelection_cff')
