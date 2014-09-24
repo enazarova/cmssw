@@ -21,6 +21,8 @@
 // system include files
 #include <memory>
 
+#define pPb
+
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
@@ -76,6 +78,7 @@ using namespace hi;
 // class declaration
 //
 
+
 static const  int NumCentBins=14;
 static double wcent[]={0,5,10,15,20,25,30,35,40,50,60,70,80,90,100};
 
@@ -97,19 +100,20 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
   edm::InputTag inputPlanes_;
 
   TTree * tree;
-  int vs_sell;   // vertex collection size
-  float vzr_sell;
-  float vzErr_sell;
   double centval;
+  double ntrkval;
   double vtx;
   unsigned int runno_;
+
 
   bool FirstEvent;
 
   TH1D * hcent;
+  TH1D * hcent2;
   TH1D * hcentbins;
   TH1D * hvtx;
   TH1I * hruns;
+  TH1I * hpixelTrack;
 
   TH1D * flatXhist[NumEPNames];
   TH1D * flatYhist[NumEPNames];
@@ -169,6 +173,16 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
   double dzerr_;
   double chi2_;
   bool storeNames_;
+  int minrun_;
+  int maxrun_;
+
+
+  //*** pPb specific analysis
+  bool pPbreplay;
+  #include "pPbCentrality.h"
+  //****************
+
+
 };
 
 //
@@ -202,13 +216,18 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
   maxvtx_ = iConfig.getUntrackedParameter<double>("maxvtx_",50.);
   dzerr_ = iConfig.getUntrackedParameter<double>("dzerr_",10.);
   chi2_  = iConfig.getUntrackedParameter<double>("chi2_",40.);
+  minrun_ = iConfig.getUntrackedParameter<int>("minrun_",181000);
+  maxrun_ = iConfig.getUntrackedParameter<int>("maxrun_",184000);
   storeNames_ = 1;
   FirstEvent = kTRUE;
+  centProvider = 0;
   //now do what ever other initialization is needed
   hcent = fs->make<TH1D>("cent","cent",NumCentBins,wcent);
+  hcent2 = fs->make<TH1D>("cent2","cent2",NumCentBins,wcent);
   hcentbins = fs->make<TH1D>("centbins","centbins",201,0,200);
   hvtx = fs->make<TH1D>("vtx","vtx",1000,-50,50);  
-  hruns = fs->make<TH1I>("runs","runs",3001,181000,184000);
+  hruns = fs->make<TH1I>("runs","runs",maxrun_ - minrun_ + 1,minrun_,maxrun_);
+  hpixelTrack = fs->make<TH1I>("pixelTrack","pixelTrack",2,1,3);
   cout<<"====================="<<endl;
   cout<<"HiEvtPlaneFlatCalib: "<<endl;
   cout<<"  minet_:            "<<minet_<<endl;
@@ -300,7 +319,14 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
   tree->Branch("Vtx",&vtx,"vtx/D");
   tree->Branch("EP",&epang, epnames.Data());
   tree->Branch("Run",&runno_,"run/i");
-  
+  pPbreplay = false;
+#ifdef pPb
+  pPbreplay = true;
+  tree->Branch("NtrkOff",&ntrkval,"ntrkoff/D");
+  Noffmin_ = iConfig.getUntrackedParameter<int>("Noffmin_", 0);
+  Noffmax_ = iConfig.getUntrackedParameter<int>("Noffmax_", 10000);	
+  hNtrkoff = fs->make<TH1D>("Ntrkoff","Ntrkoff",500,0,500);
+#endif
 }
 
 
@@ -322,15 +348,12 @@ void
 HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
+  using namespace std;
   using namespace reco;
+
   runno_ = iEvent.id().run();
-  //cout<<"====NEW EVENT===="<<endl;
   if(FirstEvent) {
     FirstEvent = kFALSE;
-    //
-    //Check if new run
-    //
-
     //
     //Get Flattening Parameters
     //
@@ -338,7 +361,7 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       edm::ESHandle<RPFlatParams> flatparmsDB_;
       iSetup.get<HeavyIonRPRcd>().get(flatparmsDB_);
       int flatTableSize = flatparmsDB_->m_table.size();
-      //cout<<"flatTableSize: "<<flatTableSize<<endl;
+      cout<<"flatTableSize: "<<flatTableSize<<endl;
       for(int i = 0; i<flatTableSize; i++) {
 	const RPFlatParams::EP* thisBin = &(flatparmsDB_->m_table[i]);
 	for(int j = 0; j<NumEPNames; j++) {
@@ -372,25 +395,36 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   //
   //Get Centrality
   //
-  centProvider = new CentralityProvider(iSetup);
+  int bin = 0;
+  int Noff = 0;
+  if(pPbreplay) {
+    bin = getNoffCent( iEvent, iSetup, Noff);
+    ntrkval = Noff;
+    if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
+      return;
+    }
+    hNtrkoff->Fill(Noff);
+  } 
+  if(!centProvider) centProvider = new CentralityProvider(iSetup);
   centProvider->newEvent(iEvent,iSetup);
   centProvider->raw();
-  int bin = centProvider->getBin();
+  bin = centProvider->getBin();
   centval = (100./centProvider->getNbins())*(bin+0.5);
-  //  if(hcentbins->Integral(1,1000)>0 || centval>50) return;  //For one-event test...
   hcent->Fill(centval);
   hcentbins->Fill(bin);
+  if(centProvider->getNbins()<=100) bin=2*bin;
 
   //
   //Get Vertex
   //
+  int vs_sell;   // vertex collection size
+  float vzr_sell;
   edm::Handle<reco::VertexCollection> vertexCollection3;
-  iEvent.getByLabel("hiSelectedVertex",vertexCollection3);
+  iEvent.getByLabel(vtxCollection_,vertexCollection3);
   const reco::VertexCollection * vertices3 = vertexCollection3.product();
   vs_sell = vertices3->size();
   if(vs_sell>0) {
     vzr_sell = vertices3->begin()->z();
-    vzErr_sell = vertices3->begin()->zError();
   } else
     vzr_sell = -999.9;
 
@@ -482,12 +516,14 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	  if( isPixel ) {
 	    if ( fabs(dz/dzsigma) > dzerr_ ) accepted = false;
 	    if ( j->normalizedChi2() > chi2_ ) accepted = false;
+	    hpixelTrack->Fill(1);
 	  }
 	  if ( ! isPixel){
 	    if ( fabs(dz/dzsigma) > 3 ) accepted = false;
 	    if ( fabs(d0/d0sigma) > 3 ) accepted = false;
-	    if ( j->ptError()/j->pt() > 0.05 ) accepted = false;
+	    if ( j->ptError()/j->pt() > 0.1 ) accepted = false;
 	    if ( j->numberOfValidHits() < 12 ) accepted = false;
+	    hpixelTrack->Fill(2);
 	  }
 	  if( accepted ) {
 	    track_eta = j->eta();
@@ -536,6 +572,7 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     cout << "Error! Can't get hiEvtPlane product!" << endl;
     return ;
   }
+  hcent2->Fill(centval);
 
   double plotZrange = 25;
   for (EvtPlaneCollection::const_iterator rp = evtPlanes->begin();rp !=evtPlanes->end(); rp++) {

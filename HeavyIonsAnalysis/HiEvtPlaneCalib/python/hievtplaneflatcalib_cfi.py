@@ -20,5 +20,9 @@ hiEvtPlaneFlatCalib = cms.EDAnalyzer('HiEvtPlaneFlatCalib',
                                      minvtx_ = cms.untracked.double(-25.),
                                      maxvtx_ = cms.untracked.double(25.),
                                      dzerr_ = cms.untracked.double(10.),
-                                     chi2_ = cms.untracked.double(40.)
+                                     chi2_ = cms.untracked.double(40.),
+                                     Noffmin_ = cms.untracked.int32 (-1),
+                                     Noffmax_ = cms.untracked.int32 (10000),
+                                     minrun_ = cms.untracked.int32 (210490),
+                                     maxrun_ = cms.untracked.int32 (211631)
                                      )
