@@ -195,9 +195,14 @@ MoveFlatParamsToDB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     if(thisBin) delete thisBin;
   }
   cout<<"Number of RP: "<<nRP<<endl;
-  edm::Service<cond::service::PoolDBOutputService> poolDbService;
-  if(poolDbService.isAvailable())
-    poolDbService->writeOne( rpFlat,poolDbService->beginOfTime(),"HeavyIonRPRcd");
+  edm::Service<cond::service::PoolDBOutputService> pool;
+  if(pool.isAvailable()){
+    if(pool->isNewTagRequest("HeavyIonRPRcd") ) {
+      pool->createNewIOV<RPFlatParams>(rpFlat,pool->beginOfTime(), pool->endOfTime(),"HeavyIonRPRcd");
+    } else {
+      pool->appendSinceTime<RPFlatParams>(rpFlat, pool->currentTime(),"HeavyIonRPRcd");
+    }
+  }
   cout<<"DONE"<<endl;
 }
 

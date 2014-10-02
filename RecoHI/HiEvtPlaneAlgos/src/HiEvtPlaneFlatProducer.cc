@@ -96,9 +96,6 @@ class HiEvtPlaneFlatProducer : public edm::EDProducer {
   edm::InputTag inputPlanes_;
   CentralityProvider * centProvider;
 
-  int vs_sell;   // vertex collection size
-  float vzr_sell;
-  float vzErr_sell;
   bool FirstEvent;
   HiEvtPlaneFlatten * flat[NumEPNames];
   RPFlatParams * rpFlat;
@@ -125,6 +122,7 @@ typedef TrackingParticleRefVector::iterator               tp_iterator;
 //
 HiEvtPlaneFlatProducer::HiEvtPlaneFlatProducer(const edm::ParameterSet& iConfig)
 {
+  centProvider = 0;
   vtxCollection_  = iConfig.getParameter<edm::InputTag>("vtxCollection_");
   inputPlanes_ = iConfig.getParameter<edm::InputTag>("inputPlanes_");
   storeNames_ = 1;
@@ -197,21 +195,23 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   //Get Centrality
   //
-  centProvider = new CentralityProvider(iSetup);
+  if(!centProvider) centProvider = new CentralityProvider(iSetup);
   centProvider->newEvent(iEvent,iSetup);
   centProvider->raw();
   int bin = centProvider->getBin();
+  if(centProvider->getNbins()<=100) bin=2*bin;
  
   //
   //Get Vertex
   //
+  int vs_sell;   // vertex collection size
+  float vzr_sell;
   edm::Handle<reco::VertexCollection> vertexCollection3;
   iEvent.getByLabel(vtxCollection_,vertexCollection3);
   const reco::VertexCollection * vertices3 = vertexCollection3.product();
   vs_sell = vertices3->size();
   if(vs_sell>0) {
     vzr_sell = vertices3->begin()->z();
-    vzErr_sell = vertices3->begin()->zError();
   } else
     vzr_sell = -999.9;
   

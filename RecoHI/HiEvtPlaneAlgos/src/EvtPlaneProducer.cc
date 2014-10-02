@@ -175,6 +175,7 @@ private:
 // constructors and destructor
 //
 EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig) {
+  centProvider = 0;
   vtxCollection_  = iConfig.getParameter<edm::InputTag>("vtxCollection_");
   caloCollection_  = iConfig.getParameter<edm::InputTag>("caloCollection_");
   trackCollection_  = iConfig.getParameter<edm::InputTag>("trackCollection_");
@@ -184,12 +185,12 @@ EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig) {
   useHCAL_ = iConfig.getUntrackedParameter<bool>("useHCAL_",true);
   useTrack_ = iConfig.getUntrackedParameter<bool>("useTrack",true);
 
-  minet_ = iConfig.getUntrackedParameter<double>("minet_",0.3);
-  maxet_ = iConfig.getUntrackedParameter<double>("maxet_",500.);
+  minet_ = iConfig.getUntrackedParameter<double>("minet_",0.5);
+  maxet_ = iConfig.getUntrackedParameter<double>("maxet_",80.);
   minpt_ = iConfig.getUntrackedParameter<double>("minpt_",0.3);
   maxpt_ = iConfig.getUntrackedParameter<double>("maxpt_",2.5);
-  minvtx_ = iConfig.getUntrackedParameter<double>("minvtx_",-50.);
-  maxvtx_ = iConfig.getUntrackedParameter<double>("maxvtx_",50.);
+  minvtx_ = iConfig.getUntrackedParameter<double>("minvtx_",-25.);
+  maxvtx_ = iConfig.getUntrackedParameter<double>("maxvtx_",25.);
   dzerr_ = iConfig.getUntrackedParameter<double>("dzerr_",10.);
   chi2_  = iConfig.getUntrackedParameter<double>("chi2_",40.);
   storeNames_ = 1;
@@ -235,22 +236,13 @@ void
 EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
+  using namespace std;
   using namespace reco;
  
-  //
-  //Get Centrality
-  //
-  centProvider = new CentralityProvider(iSetup);
-  centProvider->newEvent(iEvent,iSetup);
-  centProvider->raw();
-  int bin = centProvider->getBin();
-
-  int vs_sell;
-  float vzr_sell;
   if(FirstEvent && loadDB_) {
     FirstEvent = kFALSE;
     //
-    //Get flattening parameter file.  This also contains the averages needed for momentum conserving weights
+    //Get flattening parameter file.  
     //
     edm::ESHandle<RPFlatParams> flatparmsDB_;
     iSetup.get<HeavyIonRPRcd>().get(flatparmsDB_);
@@ -277,7 +269,19 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
       }
     }
   } //First event
-  
+
+  //
+  //Get Centrality
+  //
+  if(!centProvider) centProvider = new CentralityProvider(iSetup);
+  centProvider->newEvent(iEvent,iSetup);
+  centProvider->raw();
+  int bin = centProvider->getBin();
+  if(centProvider->getNbins()<=100) bin=2*bin;
+
+  int vs_sell;
+  float vzr_sell;
+
   //
   //Get Vertex
   //
@@ -292,6 +296,8 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   //
   for(int i = 0; i<NumEPNames; i++) rp[i]->reset();
   if(vzr_sell>minvtx_ && vzr_sell<maxvtx_) {
+
+  
 
     //calorimetry part
     
@@ -369,7 +375,7 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 	  if ( fabs(dz/dzsigma) > 3 ) accepted = false;
 	  if ( fabs(d0/d0sigma) > 3 ) accepted = false;
 	  // pt resolution cut
-	  if ( j->ptError()/j->pt() > 0.05 ) accepted = false;
+	  if ( j->ptError()/j->pt() > 0.1 ) accepted = false;
 	  // number of valid hits cut
 	  if ( j->numberOfValidHits() < 12 ) accepted = false;
 	}
