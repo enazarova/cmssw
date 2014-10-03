@@ -68,6 +68,7 @@ using namespace hi;
 //
 // class declaration
 //
+static const int MaxEPAllowed = 50;  //determined by RPFlatParams.h
 
 class MoveFlatParamsToDB : public edm::EDAnalyzer {
 public:
@@ -148,7 +149,7 @@ MoveFlatParamsToDB::MoveFlatParamsToDB(const edm::ParameterSet& iConfig)
 	y[cnt]->Divide(xycnt[cnt]);
       }
       ++cnt;
-      if(cnt>NumEPNames||cnt>rpFlat->MaxEPAllowed) {
+      if(cnt>NumEPNames||cnt>MaxEPAllowed) {
 	cout<<"Maximum number of reaction planes exceeded!"<<endl;
 	break;
       }
