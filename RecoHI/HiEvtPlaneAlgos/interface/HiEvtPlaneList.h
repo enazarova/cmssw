@@ -1,3 +1,5 @@
+#ifndef HiEvtPlaneList_
+#define HiEvtPlaneList_
 /*
        Name                 EtaMin1 EtaMax1 EtaMin2 EtaMax2  Order   ResCoreMate 1        ResCorMate 2
  0 EvtPlaneFromTracksMidEta	 -0.75   0.75		       2        etHFm                    etHFp
@@ -197,3 +199,4 @@ const double EPEtaMax2[] = {
 
 static const int NumEPNames = 38;
 }
+#endif

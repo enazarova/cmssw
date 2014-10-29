@@ -40,6 +40,7 @@
 
 #include "DataFormats/HeavyIonEvent/interface/Centrality.h"
 #include "DataFormats/HeavyIonEvent/interface/CentralityBins.h"
+#include "RecoHI/HiCentralityAlgos/interface/CentralityProvider.h"
 
 #include "DataFormats/HeavyIonEvent/interface/EvtPlane.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
@@ -89,11 +90,24 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
       
       // ----------member data ---------------------------
   edm::Service<TFileService> fs;
+  edm::InputTag vtxCollection_;
+  edm::InputTag inputPlanes_;
+
   //  const CentralityBins * cbins_;
   CentralityProvider * centrality_;
   int vs_sell;   // vertex collection size
   float vzr_sell;
   float vzErr_sell;
+  TTree * tree;
+  double centval;
+  double vtx;
+  Double_t epang[NumEPNames];
+  Double_t epangorig[NumEPNames];
+  unsigned int runno_;
+ 
+  int FlatOrder_;
+  int NumFlatCentBins_;
+  int CentBinCompression_;
 
   static const  int NumCentBins=9;
   double wcent[10];
@@ -111,7 +125,6 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
   TH1D * hPsiFlatCent[NumEPNames][NumCentBins];
   TH1D * hPsiFlatSub1[NumEPNames];
   TH1D * hPsiFlatSub2[NumEPNames];
-  Double_t epang[NumEPNames];
   HiEvtPlaneFlatten * flat[NumEPNames];
   RPFlatParams * rpFlat;
   int nRP;
@@ -133,7 +146,11 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
 HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig)
 {
   genFlatPsi_ = iConfig.getUntrackedParameter<bool>("genFlatPsi_",true);
-
+  vtxCollection_  = iConfig.getParameter<edm::InputTag>("vtxCollection_");
+  inputPlanes_ = iConfig.getParameter<edm::InputTag>("inputPlanes_");
+  FlatOrder_ = iConfig.getUntrackedParameter<int>("FlatOrder_", 9);
+  NumFlatCentBins_ = iConfig.getUntrackedParameter<int>("NumFlatCentBins_",50);
+  CentBinCompression_ = iConfig.getUntrackedParameter<int>("CentBinCompression_",4);
   //  NumCentBins=9;
   wcent[0] = 0;
   wcent[1] = 5;
@@ -149,17 +166,22 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig)
   //now do what ever other initialization is needed
   //  cbins_ = 0;
   centrality_ = 0;
-  hcent = fs->make<TH1D>("cent","cent",41,0,40);
+  hcent = fs->make<TH1D>("cent","cent",201,0,200);
   hvtx = fs->make<TH1D>("vtx","vtx",1000,-50,50);
   //setting before 8:35 CDT on 11Jan2011
-  Int_t FlatOrder = 21;
+
+  TString epnames = EPNames[0].data();
+  epnames = epnames+"/D";
   for(int i = 0; i<NumEPNames; i++) {
+    if(i>0) epnames = epnames + ":" + EPNames[i].data() + "/D";
     TFileDirectory subdir = fs->mkdir(Form("%s",EPNames[i].data()));
     flat[i] = new HiEvtPlaneFlatten();
-    flat[i]->Init(FlatOrder,11,4,EPNames[i],EPOrder[i]);
+    flat[i]->Init(FlatOrder_,NumFlatCentBins_,CentBinCompression_,EPNames[i],EPOrder[i]);
     int nbins = flat[i]->GetHBins();
     flatXhist[i] = subdir.make<TH1D>(Form("x_%s",EPNames[i].data()),Form("x_%s",EPNames[i].data()),nbins,-0.5,nbins-0.5);
     flatYhist[i] = subdir.make<TH1D>(Form("y_%s",EPNames[i].data()),Form("y_%s",EPNames[i].data()),nbins,-0.5,nbins-0.5);
+    flatXDBhist[i] = subdir.make<TH1D>(Form("xDB_%s",EPNames[i].data()),Form("xDB_%s",EPNames[i].data()),nbins,-0.5,nbins-0.5);
+    flatYDBhist[i] = subdir.make<TH1D>(Form("yDB_%s",EPNames[i].data()),Form("yDB_%s",EPNames[i].data()),nbins,-0.5,nbins-0.5);
     flatCnthist[i] = subdir.make<TH1D>(Form("cnt_%s",EPNames[i].data()),Form("cnt_%s",EPNames[i].data()),nbins,-0.5,nbins-0.5);
     Double_t psirange = 4;
     if(EPOrder[i]==2 ) psirange = 2;
@@ -181,6 +203,12 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig)
     }  
 
   }
+  tree = fs->make<TTree>("tree","EP tree");
+  tree->Branch("Cent",&centval,"cent/D");
+  tree->Branch("Vtx",&vtx,"vtx/D");
+  tree->Branch("EP",&epang, epnames.Data());
+  tree->Branch("EP_orig",&epangorig, epnames.Data());
+  tree->Branch("Run",&runno_,"run/i");
   
 }
 
@@ -204,6 +232,7 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 {
   using namespace edm;
   using namespace reco;
+  runno_ = iEvent.id().run(); 
   //
   //Get Centrality
   //
@@ -211,20 +240,23 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
    centrality_->newEvent(iEvent,iSetup); // make sure you do this first in every event
    int bin = centrality_->getBin();
-  double centval = 2.5*bin+1.25;
-  hcent->Fill(bin);
+   centval = (100./centrality_->getNbins())*(bin+0.5);
+   hcent->Fill(bin);
   //
   //Get Vertex
   //
   edm::Handle<reco::VertexCollection> vertexCollection3;
-  iEvent.getByLabel("hiSelectedVertex",vertexCollection3);
+  iEvent.getByLabel(vtxCollection_,vertexCollection3);
   const reco::VertexCollection * vertices3 = vertexCollection3.product();
   vs_sell = vertices3->size();
   if(vs_sell>0) {
     vzr_sell = vertices3->begin()->z();
     vzErr_sell = vertices3->begin()->zError();
-  } else
+  } else {
     vzr_sell = -999.9;
+  }
+  vtx=vzr_sell;
+  hvtx->Fill(vzr_sell);
   //
   //Get Flattening Parameters
   //
@@ -239,6 +271,8 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	if(indx>=0) {
 	    flat[indx]->SetXDB(i, thisBin->x[j]);
 	    flat[indx]->SetYDB(i, thisBin->y[j]);
+	    flatXDBhist[j]->SetBinContent(i+1,thisBin->x[j]);
+	    flatYDBhist[j]->SetBinContent(i+1,thisBin->y[j]);
 	}
       }
     }
@@ -249,7 +283,7 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   //
 
   Handle<reco::EvtPlaneCollection> evtPlanes;
-  iEvent.getByLabel("hiEvtPlane","recoLevel",evtPlanes);
+  iEvent.getByLabel(inputPlanes_,evtPlanes);
 
   if(!evtPlanes.isValid()){
     //cout << "Error! Can't get hiEvtPlane product!" << endl;
@@ -262,12 +296,13 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       for(int i = 0; i< NumEPNames; i++) {
 	if(EPNames[i].compare(baseName)==0) {
 	  double psiFlat = flat[i]->GetFlatPsi(rp->angle(),vzr_sell,bin);
+	  epangorig[i]=rp->angle();
 	  epang[i]=psiFlat;
 	  if(EPNames[i].compare(rp->label())==0) {
 	    flat[i]->Fill(rp->angle(),vzr_sell,bin);
-	    if(i==0)  hvtx->Fill(vzr_sell);
 
 	    if(centval<=80) hPsi[i]->Fill(rp->angle());
+
 	    if(genFlatPsi_) {
 	      if(centval<=80) hPsiFlat[i]->Fill(psiFlat);
 	      for(int j = 0; j<NumCentBins; j++) {
@@ -279,7 +314,7 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       }
     }    
   }
-
+  tree->Fill();
 }
 
 // ------------ method called once each job just before starting event loop  ------------

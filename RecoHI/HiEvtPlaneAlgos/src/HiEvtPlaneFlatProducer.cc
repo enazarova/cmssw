@@ -38,6 +38,7 @@
 
 #include "DataFormats/HeavyIonEvent/interface/Centrality.h"
 #include "DataFormats/HeavyIonEvent/interface/CentralityBins.h"
+#include "RecoHI/HiCentralityAlgos/interface/CentralityProvider.h"
 
 #include "DataFormats/HeavyIonEvent/interface/EvtPlane.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
@@ -96,17 +97,20 @@ class HiEvtPlaneFlatProducer : public edm::EDProducer {
 
   edm::InputTag vtxCollection_;
   edm::InputTag inputPlanes_;
-  edm::InputTag centrality_;
 
+  CentralityProvider * centrality_;
   int vs_sell;   // vertex collection size
   float vzr_sell;
   float vzErr_sell;
+  double centval;
+  int FlatOrder_;
+  int NumFlatCentBins_;
+  int CentBinCompression_;
 
   Double_t epang[NumEPNames];
   HiEvtPlaneFlatten * flat[NumEPNames];
   RPFlatParams * rpFlat;
   int nRP;
-  bool storeNames_;
 
 };
 
@@ -126,18 +130,18 @@ typedef TrackingParticleRefVector::iterator               tp_iterator;
 //
 HiEvtPlaneFlatProducer::HiEvtPlaneFlatProducer(const edm::ParameterSet& iConfig)
 {
-
+  centrality_ = 0;
   vtxCollection_  = iConfig.getParameter<edm::InputTag>("vtxCollection_");
   inputPlanes_ = iConfig.getParameter<edm::InputTag>("inputPlanes_");
-  centrality_ = iConfig.getParameter<edm::InputTag>("centrality_");
-  storeNames_ = 1;
-   //register your products
+  FlatOrder_ = iConfig.getUntrackedParameter<int>("FlatOrder_", 9);
+  NumFlatCentBins_ = iConfig.getUntrackedParameter<int>("NumFlatCentBins_",50);
+  CentBinCompression_ = iConfig.getUntrackedParameter<int>("CentBinCompression_",4);
+  //register your products
   produces<reco::EvtPlaneCollection>();
-   //now do what ever other initialization is needed
-  Int_t FlatOrder = 21;
+  //now do what ever other initialization is needed
   for(int i = 0; i<NumEPNames; i++) {
     flat[i] = new HiEvtPlaneFlatten();
-    flat[i]->Init(FlatOrder,11,4,EPNames[i],EPOrder[i]);
+    flat[i]->Init(FlatOrder_,NumFlatCentBins_,CentBinCompression_,EPNames[i],EPOrder[i]);
   }
   
 }
@@ -168,11 +172,11 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   //Get Centrality
   //
 
-  edm::Handle<int> ch;
-  iEvent.getByLabel(centrality_,ch);
-  int bin = *(ch.product());
+  if(!centrality_) centrality_ = new CentralityProvider(iSetup);
 
-  //  double centval = 2.5*bin+1.25;
+   centrality_->newEvent(iEvent,iSetup); // make sure you do this first in every event
+   int bin = centrality_->getBin();
+   centval = (100./centrality_->getNbins())*(bin+0.5);
   //
   //Get Vertex
   //
@@ -217,29 +221,25 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   std::auto_ptr<EvtPlaneCollection> evtplaneOutput(new EvtPlaneCollection);
   EvtPlane * ep[NumEPNames];
   for(int i = 0; i<NumEPNames; i++) {
+    epang[i]=-5;
     ep[i]=0;
   }
   for (EvtPlaneCollection::const_iterator rp = evtPlanes->begin();rp !=evtPlanes->end(); rp++) {
-    if(rp->angle() > -5) {
-      string baseName = rp->label();
-      for(int i = 0; i< NumEPNames; i++) {
-	if(EPNames[i].compare(baseName)==0) {
-	  double psiFlat = flat[i]->GetFlatPsi(rp->angle(),vzr_sell,bin);
-	  epang[i]=psiFlat;
-	  if(EPNames[i].compare(rp->label())==0) {	    
-	    if(storeNames_) ep[i]= new EvtPlane(psiFlat, rp->sumSin(), rp->sumCos(),rp->label().data());
-	    else ep[i]= new EvtPlane(psiFlat, rp->sumSin(), rp->sumCos(),"");
-	  } 
-	}
+    string baseName = rp->label();
+    for(int i = 0; i< NumEPNames; i++) {
+      if(EPNames[i].compare(baseName)==0) {
+	double psiFlat = -5;
+	if(rp->angle()>-5) psiFlat = flat[i]->GetFlatPsi(rp->angle(),vzr_sell,bin);
+	epang[i]=psiFlat;
+	ep[i]= new EvtPlane(psiFlat, rp->sumSin(), rp->sumCos(),rp->label().data());
       }
-    }    
+    }  
   }
   
   for(int i = 0; i< NumEPNames; i++) {
     if(ep[i]!=0) evtplaneOutput->push_back(*ep[i]);
   }
   iEvent.put(evtplaneOutput);
-  storeNames_ = 0;  
 }
 
 // ------------ method called once each job just before starting event loop  ------------

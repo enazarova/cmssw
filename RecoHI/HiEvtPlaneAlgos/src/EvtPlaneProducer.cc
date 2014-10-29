@@ -149,8 +149,6 @@ private:
   double maxvtx_;
   double dzerr_;
   double chi2_;
-
-  bool storeNames_;
 };
 
 //
@@ -186,7 +184,6 @@ EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig)
   dzerr_ = iConfig.getUntrackedParameter<double>("dzerr_",10.);
   chi2_  = iConfig.getUntrackedParameter<double>("chi2_",40.);
 
-  storeNames_ = 1;
   produces<reco::EvtPlaneCollection>("recoLevel");
   for(int i = 0; i<NumEPNames; i++ ) {
     rp[i] = new GenPlane(EPNames[i].data(),EPEtaMin1[i],EPEtaMax1[i],EPEtaMin2[i],EPEtaMax2[i],EPOrder[i]);
@@ -413,8 +410,7 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   for(int i = 0; i<NumEPNames; i++) {
     rp[i]->getAngle(ang,sv,cv);
-    if(storeNames_) ep[i] = new EvtPlane(ang,sv,cv,EPNames[i]);
-    else ep[i] = new EvtPlane(ang,sv,cv,"");
+    ep[i] = new EvtPlane(ang,sv,cv,EPNames[i]);
   }
   if(useTrack_) {
     for(int i = 0; i<9; i++) {
@@ -436,7 +432,6 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
   
   iEvent.put(evtplaneOutput, "recoLevel");
-  //  storeNames_ = 0;
 }
   
   // ------------ method called once each job just before starting event loop  ------------

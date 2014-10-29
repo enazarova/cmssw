@@ -79,11 +79,11 @@ public:
   {
     int cut;
     int icent = centbin/centbinComp;
-    if(icent < 0 || icent > hcentbins) return -1;
+    if(centbin < 0 || icent >= hcentbins) return -1;
     int ivtx = (vtx-minvtx)/delvtx;
-    if(ivtx < 0 || ivtx > nvtxbins) return -1;
+    if(vtx < minvtx || ivtx >= nvtxbins) return -1;
     cut = hOrder*nvtxbins*icent + hOrder*ivtx + iord;
-    if(cut<0 || cut>hbins) return -1;
+    if(cut<0 || cut>=hbins) return -1;
     return cut;
   }
   
@@ -110,7 +110,6 @@ public:
       correction+=(2./(double)((k+1)*vorder))*(flatXDB[indx]*sin(vorder*(k+1)*psi)-flatYDB[indx]*cos(vorder*(k+1)*psi));
     }
     psi+=correction;
-    psi=bounds(psi);
     psi=bounds2(psi);
     return psi;
   }
@@ -129,8 +128,8 @@ public:
   }
   Double_t bounds2(Double_t ang) {
     double range = pi/(double) vorder;
-    if(ang<-range) ang+=2*range;
-    if(ang>range)  ang-=2*range;
+    while(ang<-range){ ang+=2*range; }
+    while(ang>range) { ang-=2*range; }
     return ang;
   }
 private:
