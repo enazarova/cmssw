@@ -1,0 +1,17 @@
+import FWCore.ParameterSet.Config as cms
+
+checkflattening = cms.EDAnalyzer("CheckFlattening",
+                            vtxCollection_=cms.InputTag("hiSelectedVertex"),
+                            caloCollection_=cms.InputTag("towerMaker"),
+                            trackCollection_=cms.InputTag("hiGeneralTracks"),                           
+                            jetAnal_ = cms.untracked.bool(False),
+                            caloAnal_ = cms.untracked.bool(False),
+                            trackAnal_ = cms.untracked.bool(True),
+                            centrality_ = cms.InputTag("centralityBin"),
+                            mixedOrder_ = cms.untracked.bool(False),
+                            eporder_ = cms.untracked.int32(0),
+                            minrun_ = cms.untracked.int32(0),
+                            maxrun_ = cms.untracked.int32(600000),
+                            minvtx_ = cms.untracked.double(-10.0),
+                            maxvtx_ = cms.untracked.double(10.0)
+ )
