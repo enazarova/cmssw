@@ -64,7 +64,7 @@ public:
     if(hcentbins<=0) hcentbins = 1;
     hbins = hcentbins*nvtxbins*hOrder;
     if(hbins>MAXCUT) {
-      std::cout<<"Too many cuts for flattening calculation.  RESET to deaults"<<std::endl;
+      std::cout<<"Too many cuts for flattening calculation.  RESET to defaults"<<std::endl;
       hcentbins = 1;
       hOrder = 21;
     }

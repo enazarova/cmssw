@@ -277,7 +277,6 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       }
     }
   }
-    
   //
   //Get Event Planes
   //
@@ -291,23 +290,25 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   }
 
   for (EvtPlaneCollection::const_iterator rp = evtPlanes->begin();rp !=evtPlanes->end(); rp++) {
+    string baseName = rp->label();
     if(rp->angle() > -5) {
-      string baseName = rp->label();
       for(int i = 0; i< NumEPNames; i++) {
 	if(EPNames[i].compare(baseName)==0) {
-	  double psiFlat = flat[i]->GetFlatPsi(rp->angle(),vzr_sell,bin);
+	  double psiFlat = -5;
+	  epang[i] = psiFlat;
+	  if(genFlatPsi_){
+	    psiFlat = flat[i]->GetFlatPsi(rp->angle(),vzr_sell,bin);
+	    epang[i]=psiFlat;
+	  }
 	  epangorig[i]=rp->angle();
-	  epang[i]=psiFlat;
-	  if(EPNames[i].compare(rp->label())==0) {
-	    flat[i]->Fill(rp->angle(),vzr_sell,bin);
-
-	    if(centval<=80) hPsi[i]->Fill(rp->angle());
-
-	    if(genFlatPsi_) {
-	      if(centval<=80) hPsiFlat[i]->Fill(psiFlat);
-	      for(int j = 0; j<NumCentBins; j++) {
-		if(centval>wcent[j]&&centval<=wcent[j+1]) hPsiFlatCent[i][j]->Fill(psiFlat);
-	      }
+	  flat[i]->Fill(rp->angle(),vzr_sell,bin);
+	  
+	  if(centval<=80) hPsi[i]->Fill(rp->angle());
+	  
+	  if(genFlatPsi_) {
+	    if(centval<=80) hPsiFlat[i]->Fill(psiFlat);
+	    for(int j = 0; j<NumCentBins; j++) {
+	      if(centval>wcent[j]&&centval<=wcent[j+1]) hPsiFlatCent[i][j]->Fill(psiFlat);
 	    }
 	  } 
 	}
