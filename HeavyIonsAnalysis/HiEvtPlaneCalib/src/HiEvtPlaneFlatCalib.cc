@@ -21,8 +21,6 @@
 // system include files
 #include <memory>
 
-#define pPb
-
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
@@ -64,7 +62,6 @@
 #include "TF1.h"
 #include "TList.h"
 #include "TString.h"
-//#include "TRandom3.h"
 #include <time.h>
 #include <cstdlib>
 #include <vector>
@@ -79,9 +76,6 @@ using namespace hi;
 //
 
 
-static const  int NumCentBins=14;
-static double wcent[]={0,5,10,15,20,25,30,35,40,50,60,70,80,90,100};
-
 class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
    public:
       explicit HiEvtPlaneFlatCalib(const edm::ParameterSet&);
@@ -94,17 +88,40 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
       
       // ----------member data ---------------------------
   edm::Service<TFileService> fs;
-  edm::InputTag vtxCollection_;
-  edm::InputTag caloCollection_;
-  edm::InputTag trackCollection_;
-  edm::InputTag inputPlanes_;
+  //  edm::InputTag vtxCollection_;
+  // edm::InputTag caloCollection_;
+  // edm::InputTag trackCollection_;
+  // edm::InputTag inputPlanes_;
+
+
+  edm::InputTag centralityTag_;  
+  //edm::EDGetTokenT<reco::Centrality> centralityToken;
+  edm::Handle<reco::Centrality> centrality_;
+
+  edm::InputTag vertexTag_;
+  //edm::EDGetTokenT<std::vector<reco::Vertex>> vertexToken;
+  edm::Handle<std::vector<reco::Vertex>> vertex_;
+
+  edm::InputTag caloTag_;
+  //edm::EDGetTokenT<CaloTowerCollection> caloToken;
+  edm::Handle<CaloTowerCollection> caloCollection_;
+
+  edm::InputTag trackTag_;
+  //edm::EDGetTokenT<reco::TrackCollection> trackToken;
+  edm::Handle<reco::TrackCollection> trackCollection_;
+
+  edm::InputTag inputPlanesTag_;
+  //edm::EDGetTokenT<reco::EvtPlaneCollection> inputPlanesToken;
+  edm::Handle<reco::EvtPlaneCollection> inputPlanes_;
+
+
 
   TTree * tree;
   double centval;
   double ntrkval;
   double vtx;
   unsigned int runno_;
-
+  static const int MaxNumFlatCentBins = 100;
 
   bool FirstEvent;
 
@@ -114,9 +131,11 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
   TH1D * hvtx;
   TH1I * hruns;
   TH1I * hpixelTrack;
-
+  TH1D * hNtrkoff;
   TH1D * flatXhist[NumEPNames];
   TH1D * flatYhist[NumEPNames];
+  TH1D * flatXhistChk[NumEPNames];
+  TH1D * flatYhistChk[NumEPNames];
   TH2D * hPsiPsiFlat[NumEPNames];	
   TH2D * hPsiPsiOffset[NumEPNames];	
   TH1D * flatCnthist[NumEPNames];
@@ -146,11 +165,21 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
   TH1D * hPsi[NumEPNames];
   TH1D * hPsiFlat[NumEPNames];
   TH1D * hPsiOffset[NumEPNames];
-  TH1D * hPsiFlatCent[NumEPNames][NumCentBins];
+  TH1D * hPsiFlatCent[NumEPNames][MaxNumFlatCentBins];
   TH1D * hPsiFlatSub1[NumEPNames];
   TH1D * hPsiFlatSub2[NumEPNames];
   bool evtcnt[NumEPNames];
   Double_t epang[NumEPNames];
+  Double_t epang_orig[NumEPNames];
+  Double_t epsin[NumEPNames];
+  Double_t epcos[NumEPNames];
+  Double_t epsin_orig[NumEPNames];
+  Double_t epcos_orig[NumEPNames];
+  Double_t epw[NumEPNames];
+  Double_t epqx[NumEPNames];
+  Double_t epqy[NumEPNames];
+  Double_t epq[NumEPNames];
+  Double_t epmult[NumEPNames];
   CentralityProvider * centProvider;
   HiEvtPlaneFlatten * flat[NumEPNames];
   int nRP;
@@ -163,6 +192,7 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
   bool useTrack_;
   bool useMomentumCorrV1_;
   bool useTrackPtWeight_;
+  double centScale_;
   double minet_;
   double maxet_;
   double effm_;
@@ -175,13 +205,45 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
   bool storeNames_;
   int minrun_;
   int maxrun_;
+  int FlatOrder_;
+  int NumFlatCentBins_;
+  int CentBinCompression_;
+  int Noffmin_;
+  int Noffmax_;
 
-
-  //*** pPb specific analysis
-  bool pPbreplay;
-  #include "pPbCentrality.h"
-  //****************
-
+  int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+  {
+    int Noff = 0;
+    using namespace edm;
+    using namespace reco;
+  
+    iEvent.getByLabel(vertexTag_, vertex_);
+    const VertexCollection * recoVertices = vertex_.product();
+  
+    int primaryvtx = 0;
+    math::XYZPoint v1( (*recoVertices)[primaryvtx].position().x(), (*recoVertices)[primaryvtx].position().y(), (*recoVertices)[primaryvtx].position().z() );
+    double vxError = (*recoVertices)[primaryvtx].xError();
+    double vyError = (*recoVertices)[primaryvtx].yError();
+    double vzError = (*recoVertices)[primaryvtx].zError();
+    iEvent.getByLabel(trackTag_,trackCollection_);
+    for(TrackCollection::const_iterator itTrack = trackCollection_->begin();
+	itTrack != trackCollection_->end();                      
+	++itTrack) {    
+      if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
+      if ( itTrack->charge() == 0 ) continue;
+      if ( itTrack->pt() < 0.4 ) continue;
+      double d0 = -1.* itTrack->dxy(v1);
+      double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
+      double dz=itTrack->dz(v1);
+      double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
+      if ( fabs(itTrack->eta()) > 2.4 ) continue;
+      if ( fabs( dz/dzerror ) > 3. ) continue;
+      if ( fabs( d0/derror ) > 3. ) continue;
+      if ( itTrack->ptError()/itTrack->pt() > 0.1 ) continue;
+      Noff++;
+    }
+    return Noff;
+  }
 
 };
 
@@ -198,15 +260,30 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
 //
 HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno_(0)
 {
-  vtxCollection_  = iConfig.getParameter<edm::InputTag>("vtxCollection_");
-  caloCollection_  = iConfig.getParameter<edm::InputTag>("caloCollection_");
-  trackCollection_  = iConfig.getParameter<edm::InputTag>("trackCollection_");
-  inputPlanes_ = iConfig.getParameter<edm::InputTag>("inputPlanes_");
+  centralityTag_ = iConfig.getParameter<edm::InputTag>("centralityTag_");
+  //centralityToken = consumes<reco::Centrality>(centralityTag_);
+
+  vertexTag_  = iConfig.getParameter<edm::InputTag>("vertexTag_");
+  //vertexToken = consumes<std::vector<reco::Vertex>>(vertexTag_);
+
+  caloTag_ = iConfig.getParameter<edm::InputTag>("caloTag_");
+  //caloToken = consumes<CaloTowerCollection>(caloTag_);
+
+  trackTag_ = iConfig.getParameter<edm::InputTag>("trackTag_");
+  //trackToken = consumes<reco::TrackCollection>(trackTag_);
+
+  inputPlanesTag_ = iConfig.getParameter<edm::InputTag>("inputPlanesTag_");
+  //inputPlanesToken = consumes<reco::EvtPlaneCollection>(inputPlanesTag_);
+
+  centScale_ = iConfig.getUntrackedParameter<double>("centScale_",5000);
   genFlatPsi_ = iConfig.getUntrackedParameter<bool>("genFlatPsi_",true);
+  FlatOrder_ = iConfig.getUntrackedParameter<int>("FlatOrder_", 9);
+  NumFlatCentBins_ = iConfig.getUntrackedParameter<int>("NumFlatCentBins_",50);
+  if(NumFlatCentBins_ > MaxNumFlatCentBins) {
+    cout<<"NumFlatCentBins set to max of "<<MaxNumFlatCentBins<<endl;
+  }
+  CentBinCompression_ = iConfig.getUntrackedParameter<int>("CentBinCompression_",1);
   useOffsetPsi_ = iConfig.getUntrackedParameter<bool>("useOffsetPsi_",true);
-  useECAL_ = iConfig.getUntrackedParameter<bool>("useECAL_",true);
-  useHCAL_ = iConfig.getUntrackedParameter<bool>("useHCAL_",true);
-  useTrack_ = iConfig.getUntrackedParameter<bool>("useTrack",true);
   minet_ = iConfig.getUntrackedParameter<double>("minet_",0.3);
   maxet_ = iConfig.getUntrackedParameter<double>("maxet_",500.);
   effm_ = iConfig.getUntrackedParameter<double>("effm_",0.0);
@@ -220,11 +297,11 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
   maxrun_ = iConfig.getUntrackedParameter<int>("maxrun_",184000);
   storeNames_ = 1;
   FirstEvent = kTRUE;
-  centProvider = 0;
+
   //now do what ever other initialization is needed
-  hcent = fs->make<TH1D>("cent","cent",NumCentBins,wcent);
-  hcent2 = fs->make<TH1D>("cent2","cent2",NumCentBins,wcent);
-  hcentbins = fs->make<TH1D>("centbins","centbins",201,0,200);
+  hcent = fs->make<TH1D>("cent","cent",501,0,1.5*centScale_);
+  hcent2 = fs->make<TH1D>("cent2","cent2",501,0,1.5*centScale_);
+  hcentbins = fs->make<TH1D>("centbins","centbins",NumFlatCentBins_+1,0,NumFlatCentBins_);
   hvtx = fs->make<TH1D>("vtx","vtx",1000,-50,50);  
   hruns = fs->make<TH1I>("runs","runs",maxrun_ - minrun_ + 1,minrun_,maxrun_);
   hpixelTrack = fs->make<TH1I>("pixelTrack","pixelTrack",2,1,3);
@@ -245,12 +322,17 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
     if(i>0) epnames = epnames + ":" + EPNames[i].data() + "/D";
     TFileDirectory subdir = fs->mkdir(Form("%s",EPNames[i].data()));
     flat[i] = new HiEvtPlaneFlatten();
-    flat[i]->Init(FlatOrder,NumFlatCentBins,CentBinCompression,EPNames[i],EPOrder[i]);
+    flat[i]->Init(FlatOrder_,NumFlatCentBins_,CentBinCompression_,EPNames[i],EPOrder[i]);
     Hbins = flat[i]->GetHBins();
     Obins = flat[i]->GetOBins();
     int nbins = flat[i]->GetHBins() + 2*flat[i]->GetOBins();
+    int nbinsChk = flat[i]->GetHBins();
     flatXhist[i] = subdir.make<TH1D>(Form("x_%s",EPNames[i].data()),Form("x_%s",EPNames[i].data()),nbins,-0.5,nbins-0.5);
     flatYhist[i] = subdir.make<TH1D>(Form("y_%s",EPNames[i].data()),Form("y_%s",EPNames[i].data()),nbins,-0.5,nbins-0.5);
+
+    flatXhistChk[i] = subdir.make<TH1D>(Form("xChk_%s",EPNames[i].data()),Form("x_%s",EPNames[i].data()),nbinsChk,-0.5,nbinsChk-0.5);
+    flatYhistChk[i] = subdir.make<TH1D>(Form("yChk_%s",EPNames[i].data()),Form("y_%s",EPNames[i].data()),nbinsChk,-0.5,nbinsChk-0.5);
+
     flatXDBhist[i] = subdir.make<TH1D>(Form("xDB_%s",EPNames[i].data()),Form("x_%s",EPNames[i].data()),nbins,-0.5,nbins-0.5);
     flatYDBhist[i] = subdir.make<TH1D>(Form("yDB_%s",EPNames[i].data()),Form("y_%s",EPNames[i].data()),nbins,-0.5,nbins-0.5);
     flatCnthist[i] = subdir.make<TH1D>(Form("cnt_%s",EPNames[i].data()),Form("cnt_%s",EPNames[i].data()),nbins,-0.5,nbins-0.5);
@@ -306,27 +388,32 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
     hPsiPsiOffset[i]->SetOption("colz");
     hPsiPsiOffset[i]->SetXTitle("#Psi_{flat}");
     hPsiPsiOffset[i]->SetYTitle("#Psi");
-    for(int j = 0; j<NumCentBins; j++) {
-      TString hname = Form("psiFlat_%d_%d",(int) wcent[j],(int) wcent[j+1]);
+    for(int j = 0; j<NumFlatCentBins_; j++) {
+      TString hname = Form("psiFlat_%d",j);
       hPsiFlatCent[i][j] = subdir.make<TH1D>(hname.Data(),hname.Data(),800,-psirange,psirange);
       hPsiFlatCent[i][j]->SetXTitle("#Psi");
-      hPsiFlatCent[i][j]->SetYTitle(Form("Counts (%d<cent#leq%d%c)",(int) wcent[j],(int) wcent[j+1],'%'));
+      hPsiFlatCent[i][j]->SetYTitle(Form("Counts (bin %d)",(int) j));
     }  
 
   }
   tree = fs->make<TTree>("tree","EP tree");
-  tree->Branch("Cent",&centval,"cent/D");
-  tree->Branch("Vtx",&vtx,"vtx/D");
-  tree->Branch("EP",&epang, epnames.Data());
-  tree->Branch("Run",&runno_,"run/i");
-  pPbreplay = false;
-#ifdef pPb
-  pPbreplay = true;
+  tree->Branch("Cent",    &centval,    "cent/D");
+  tree->Branch("Vtx",     &vtx,        "vtx/D");
+  tree->Branch("EP",      &epang,      epnames.Data());
+  tree->Branch("EP_orig", &epang_orig, epnames.Data());
+  tree->Branch("Sin",     &epsin,      epnames.Data());
+  tree->Branch("Cos",     &epcos,      epnames.Data());
+  tree->Branch("Sin_orig",     &epsin_orig,      epnames.Data());
+  tree->Branch("Cos_orig",     &epcos_orig,      epnames.Data());
+  tree->Branch("Weight",  &epw,        epnames.Data());
+  tree->Branch("qx",      &epqx,       epnames.Data());
+  tree->Branch("qy",      &epqy,       epnames.Data());
+  tree->Branch("Mult",    &epmult,     epnames.Data());
+  tree->Branch("Run",     &runno_,     "run/i");
   tree->Branch("NtrkOff",&ntrkval,"ntrkoff/D");
   Noffmin_ = iConfig.getUntrackedParameter<int>("Noffmin_", 0);
-  Noffmax_ = iConfig.getUntrackedParameter<int>("Noffmax_", 10000);	
-  hNtrkoff = fs->make<TH1D>("Ntrkoff","Ntrkoff",500,0,500);
-#endif
+  Noffmax_ = iConfig.getUntrackedParameter<int>("Noffmax_", 50000);	
+  hNtrkoff = fs->make<TH1D>("Ntrkoff","Ntrkoff",1001,0,1000);
 }
 
 
@@ -396,32 +483,26 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   //Get Centrality
   //
   int bin = 0;
-  int Noff = 0;
-  if(pPbreplay) {
-    bin = getNoffCent( iEvent, iSetup, Noff);
-    ntrkval = Noff;
-    if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
-      return;
-    }
-    hNtrkoff->Fill(Noff);
-  } 
-  if(!centProvider) centProvider = new CentralityProvider(iSetup);
-  centProvider->newEvent(iEvent,iSetup);
-  centProvider->raw();
-  bin = centProvider->getBin();
-  centval = (100./centProvider->getNbins())*(bin+0.5);
+  int Noff = getNoff( iEvent, iSetup);
+  ntrkval = Noff;
+  if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
+    return;
+  }
+  hNtrkoff->Fill(Noff);
+  iEvent.getByLabel(centralityTag_, centrality_); 
+  centval = centrality_->EtHFhitSum();
   hcent->Fill(centval);
+  bin = NumFlatCentBins_*CentBinCompression_*centval/centScale_;
+  if(bin>NumFlatCentBins_) bin=NumFlatCentBins_;
   hcentbins->Fill(bin);
-  if(centProvider->getNbins()<=100) bin=2*bin;
 
   //
   //Get Vertex
   //
   int vs_sell;   // vertex collection size
   float vzr_sell;
-  edm::Handle<reco::VertexCollection> vertexCollection3;
-  iEvent.getByLabel(vtxCollection_,vertexCollection3);
-  const reco::VertexCollection * vertices3 = vertexCollection3.product();
+  iEvent.getByLabel(vertexTag_,vertex_);
+  const reco::VertexCollection * vertices3 = vertex_.product();
   vs_sell = vertices3->size();
   if(vs_sell>0) {
     vzr_sell = vertices3->begin()->z();
@@ -429,6 +510,7 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     vzr_sell = -999.9;
 
   vtx = vzr_sell;
+  hvtx->Fill(vtx);	  
 
   hruns->Fill(runno_);
   //Set up momentum correction weights
@@ -436,10 +518,9 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     
     double tower_eta;
     double tower_energyet, tower_energyet_e, tower_energyet_h;
-    Handle<CaloTowerCollection> calotower;
-    iEvent.getByLabel(caloCollection_,calotower);
+    iEvent.getByLabel(caloTag_,caloCollection_);
     
-    if(calotower.isValid()){
+    if(caloCollection_.isValid()){
 
 	for(int i = 0; i<NumEPNames; i++) {
 	  evtcnt[i] = kTRUE;
@@ -447,7 +528,7 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	  avwptnorm[i]->Reset();
 	}
 
-	for (CaloTowerCollection::const_iterator j = calotower->begin();j !=calotower->end(); j++) {   
+	for (CaloTowerCollection::const_iterator j = caloCollection_->begin();j !=caloCollection_->end(); j++) {   
 	  tower_eta        = j->eta();
 	  tower_energyet_e   = j->emEt();
 	  tower_energyet_h   = j->hadEt();
@@ -486,24 +567,22 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     double track_eta;
     double track_pt;
     double track_charge;
-    Handle<reco::TrackCollection> tracks;
-    iEvent.getByLabel(trackCollection_, tracks);
-    if(tracks.isValid()){
+    iEvent.getByLabel(trackTag_, trackCollection_);
+    if(trackCollection_.isValid()){
 	for(int i = 0; i<NumEPNames; i++) {
 	  avwptnorm[i]->Reset();
 	  avwptev[i]->Reset();
 	  evtcnt[i] = kTRUE;
 	}
-	for(reco::TrackCollection::const_iterator j = tracks->begin(); j != tracks->end(); j++){
-	  edm::Handle<reco::VertexCollection> vertex;
-	  iEvent.getByLabel(vtxCollection_, vertex);
+	for(reco::TrackCollection::const_iterator j = trackCollection_->begin(); j != trackCollection_->end(); j++){
+	  iEvent.getByLabel(vertexTag_, vertex_);
 	  math::XYZPoint vtxPoint(0.0,0.0,0.0);
 	  double vzErr =0.0, vxErr=0.0, vyErr=0.0;
-	  if(vertex->size()>0) {
-	    vtxPoint=vertex->begin()->position();
-	    vzErr=vertex->begin()->zError();
-	    vxErr=vertex->begin()->xError();
-	    vyErr=vertex->begin()->yError();
+	  if(vertex_->size()>0) {
+	    vtxPoint=vertex_->begin()->position();
+	    vzErr=vertex_->begin()->zError();
+	    vxErr=vertex_->begin()->xError();
+	    vyErr=vertex_->begin()->yError();
 	  }
 	  bool accepted = true;
 	  bool isPixel = false;
@@ -565,17 +644,16 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   //
   //Get Event Planes
   //
-  Handle<reco::EvtPlaneCollection> evtPlanes;
-  iEvent.getByLabel(inputPlanes_,evtPlanes);
+  iEvent.getByLabel(inputPlanesTag_,inputPlanes_);
 
-  if(!evtPlanes.isValid()){
+  if(!inputPlanes_.isValid()){
     cout << "Error! Can't get hiEvtPlane product!" << endl;
     return ;
   }
   hcent2->Fill(centval);
 
   double plotZrange = 25;
-  for (EvtPlaneCollection::const_iterator rp = evtPlanes->begin();rp !=evtPlanes->end(); rp++) {
+  for (EvtPlaneCollection::const_iterator rp = inputPlanes_->begin();rp !=inputPlanes_->end(); rp++) {
     string tmpName = rp->label();
     if(rp->angle() > -5) {
       string baseName = rp->label();
@@ -584,14 +662,32 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	  double angorig = rp->angle();
 	  double c = rp->sumCos();
 	  double s = rp->sumSin();
+	  double w = rp->sumw();
 	  uint m = rp->mult();
+	  epsin[i] = s;
+	  epcos[i] = c;
+	  epsin_orig[i] = s;
+	  epcos_orig[i] = c;
+	  epqx[i]  = rp->qx(); 
+	  epqy[i]  = rp->qy();
+	  epq[i]   = rp->q();
+	  epw[i]   = rp->sumw();
+	  epmult[i] = (double) rp->mult();
 	  double psiOffset = angorig;
-	  if(useOffsetPsi_) psiOffset = flat[i]->GetOffsetPsi(s,c,vtx,bin);
+	  if(useOffsetPsi_) {
+	    psiOffset = flat[i]->GetOffsetPsi(s,c,w,m,vtx,bin);
+	    epsin[i] = flat[i]->sumSin();
+	    epcos[i] = flat[i]->sumCos();
+	    epqx[i]  = flat[i]->qx(); 
+	    epqy[i]  = flat[i]->qy();
+	    epq[i]   = flat[i]->q();
+	  }
 	  double psiFlat = flat[i]->GetFlatPsi(psiOffset,vtx,bin);
 	  epang[i]=psiFlat;
+	  epang_orig[i]=angorig;
+
 	  flat[i]->Fill(psiOffset,vtx,bin);
 	  flat[i]->FillOffset(s,c,m,vtx,bin);
-	  if(i==0)  hvtx->Fill(vtx);	  
 	  if(centval<=80&&abs(vtx)<plotZrange) hPsi[i]->Fill(angorig);
 	  if(genFlatPsi_) {
 	    if(centval<=80&&abs(vtx)<plotZrange) {
@@ -600,9 +696,9 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	      hPsiPsiFlat[i]->Fill(angorig,psiFlat);
 	      hPsiPsiOffset[i]->Fill(angorig,psiOffset);
 	    }
-	    for(int j = 0; j<NumCentBins; j++) {
-	      if(centval>wcent[j]&&centval<=wcent[j+1]&&abs(vtx)<plotZrange) hPsiFlatCent[i][j]->Fill(psiFlat);
-	    }
+	    //for(int j = 0; j<NumCentBins; j++) {
+	    //  if(centval>wcent[j]&&centval<=wcent[j+1]&&abs(vtx)<plotZrange) hPsiFlatCent[i][j]->Fill(psiFlat);
+	    // }
 	  }
 	  
 	}
@@ -626,6 +722,8 @@ HiEvtPlaneFlatCalib::endJob() {
     for(int j = 0; j<flat[i]->GetHBins();j++) {
       flatXhist[i]->SetBinContent(j+1,flat[i]->GetX(j));
       flatYhist[i]->SetBinContent(j+1,flat[i]->GetY(j));
+      flatXhistChk[i]->SetBinContent(j+1,flat[i]->GetX(j));
+      flatYhistChk[i]->SetBinContent(j+1,flat[i]->GetY(j));
       flatCnthist[i]->SetBinContent(j+1,flat[i]->GetCnt(j));
     }
     for(int j = 0; j<flat[i]->GetOBins();j++) {

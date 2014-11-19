@@ -30,11 +30,12 @@
 
 using namespace reco;
 using namespace std;
-EvtPlane::EvtPlane(double planeA,double sumSin, double sumCos, uint mult, std::string label)
+EvtPlane::EvtPlane(double planeA,double sumSin, double sumCos, double sumw, uint mult, std::string label)
   : 
    angle_(planeA),
    sumSin_(sumSin),
    sumCos_(sumCos),
+   sumw_(sumw),
    mult_(mult),
    label_(label)
 {

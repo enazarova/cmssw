@@ -96,11 +96,11 @@ public:
   {
     int cut;
     int icent = centbin/centbinComp;
-    if(icent < 0 || icent > hcentbins) return -1;
+    if(centbin < 0 || icent >= hcentbins) return -1;
     int ivtx = (vtx-minvtx)/delvtx;
-    if(ivtx < 0 || ivtx > nvtxbins) return -1;
+    if(vtx < minvtx || ivtx >= nvtxbins) return -1;
     cut = hOrder*nvtxbins*icent + hOrder*ivtx + iord;
-    if(cut<0 || cut>hbins) return -1;
+    if(cut<0 || cut>=hbins) return -1;
     return cut;
   }
 
@@ -176,7 +176,7 @@ public:
     return psi;
   }
   
-  double GetOffsetPsi(double s, double c,  double vtx, double cent)
+  double GetOffsetPsi(double s, double c, double w, uint m,  double vtx, double cent)
   {
     int indx = GetOffsetIndx(cent,vtx);
     double snew = s-yoffDB[indx];
@@ -185,6 +185,11 @@ public:
     if((fabs(snew)<1e-4) && (fabs(cnew)<1e-4)) psi = 0.;
     psi=bounds(psi);
     psi=bounds2(psi);
+    soff_ = snew;
+    coff_ = cnew;
+    w_ = w;
+    mult_ = m;
+
     return psi;
   }
   
@@ -218,6 +223,13 @@ public:
   void SetYoffDB(int indx, double val) {yoffDB[indx]=val;}
   void SetPtDB(int indx, double val) {ptDB[indx]=val;}
   void SetPt2DB(int indx, double val) {pt2DB[indx]=val;}
+  double sumSin() const { return soff_; }
+  double sumCos() const { return coff_; }
+  double sumw()  const { return w_; }
+  uint mult()  const {return mult_;}
+  double      qx()      const { return (w_>0)? coff_/w_:0.;};
+  double      qy()      const { return (w_>0)? soff_/w_:0.;};
+  double      q()      const { return ((pow(qx(),2)+pow(qy(),2))>0)? sqrt(pow(qx(),2)+pow(qy(),2)): 0.;};
   Double_t bounds(Double_t ang) {
     if(ang<-pi) ang+=2.*pi;
     if(ang>pi)  ang-=2.*pi;
@@ -225,8 +237,8 @@ public:
   }
   Double_t bounds2(Double_t ang) {
     double range = pi/(double) vorder;
-    if(ang<-range) ang+=2*range;
-    if(ang>range)  ang-=2*range;
+    while(ang<-range) { ang+=2*range; }
+    while(ang>range)  {ang-=2*range; }
     return ang;
   }
 private:
@@ -262,6 +274,10 @@ private:
   int nvtxbins;
   double minvtx;
   double delvtx;
+  double soff_ ;
+  double coff_ ;
+  double w_ ;
+  uint mult_ ;
 
 };
 

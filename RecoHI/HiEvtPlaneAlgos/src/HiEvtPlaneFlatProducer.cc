@@ -96,11 +96,14 @@ class HiEvtPlaneFlatProducer : public edm::EDProducer {
   edm::InputTag inputPlanes_;
   CentralityProvider * centProvider;
 
+  int FlatOrder_;
+  int NumFlatCentBins_;
+  int CentBinCompression_;
+
   bool FirstEvent;
   HiEvtPlaneFlatten * flat[NumEPNames];
   RPFlatParams * rpFlat;
   int nRP;
-  bool storeNames_;
   bool useOffsetPsi_;
   int Hbins;
   int Obins;
@@ -125,16 +128,17 @@ HiEvtPlaneFlatProducer::HiEvtPlaneFlatProducer(const edm::ParameterSet& iConfig)
   centProvider = 0;
   vtxCollection_  = iConfig.getParameter<edm::InputTag>("vtxCollection_");
   inputPlanes_ = iConfig.getParameter<edm::InputTag>("inputPlanes_");
-  storeNames_ = 1;
+  FlatOrder_ = iConfig.getUntrackedParameter<int>("FlatOrder_", 9);
+  NumFlatCentBins_ = iConfig.getUntrackedParameter<int>("NumFlatCentBins_",50);
+  CentBinCompression_ = iConfig.getUntrackedParameter<int>("CentBinCompression_",4);
   useOffsetPsi_ = iConfig.getUntrackedParameter<bool>("useOffsetPsi_",true);
   FirstEvent = kTRUE;
    //register your products
   produces<reco::EvtPlaneCollection>();
    //now do what ever other initialization is needed
-  Int_t FlatOrder = 9;
   for(int i = 0; i<NumEPNames; i++) {
     flat[i] = new HiEvtPlaneFlatten();
-    flat[i]->Init(FlatOrder,NumFlatCentBins,CentBinCompression,EPNames[i],EPOrder[i]);
+    flat[i]->Init(FlatOrder_,NumFlatCentBins_,CentBinCompression_,EPNames[i],EPOrder[i]);
   }
   Hbins = flat[0]->GetHBins();
   Obins = flat[0]->GetOBins();
@@ -199,7 +203,6 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   centProvider->newEvent(iEvent,iSetup);
   centProvider->raw();
   int bin = centProvider->getBin();
-  if(centProvider->getNbins()<=100) bin=2*bin;
  
   //
   //Get Vertex
@@ -233,23 +236,22 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
     ep[i]=0;
   }
   for (EvtPlaneCollection::const_iterator rp = evtPlanes->begin();rp !=evtPlanes->end(); rp++) {
-      string baseName = rp->label();
-      for(int i = 0; i< NumEPNames; i++) {
-	if(EPNames[i].compare(baseName)==0) {
-	  double angorig = rp->angle();
-	  double c = rp->sumCos();
-	  double s = rp->sumSin();
-	 
-	  double psiOffset = angorig;
-	  if(useOffsetPsi_) psiOffset = flat[i]->GetOffsetPsi(s,c,vzr_sell,bin);
-	  double psiFlat = flat[i]->GetFlatPsi(psiOffset,vzr_sell,bin);
-;
-	  if(EPNames[i].compare(rp->label())==0) {	    
-	    if(storeNames_) ep[i]= new EvtPlane(psiFlat, rp->sumSin(), rp->sumCos(),rp->mult(),rp->label().data());
-	    else ep[i]= new EvtPlane(psiFlat, rp->sumSin(), rp->sumCos(),rp->mult(),"");
-	  } 
-	}
+    string baseName = rp->label();
+    for(int i = 0; i< NumEPNames; i++) {
+      if(EPNames[i].compare(baseName)==0) {
+	double angorig = rp->angle();
+	double c = rp->sumCos();
+	double s = rp->sumSin();
+	double w = rp->sumw();
+	uint m = rp->mult();
+	
+	double psiOffset = angorig;
+	if(useOffsetPsi_) psiOffset = flat[i]->GetOffsetPsi(s,c,w,m,vzr_sell,bin);
+	double psiFlat = flat[i]->GetFlatPsi(psiOffset,vzr_sell,bin);
+	;
+	ep[i]= new EvtPlane(psiFlat, flat[i]->sumSin(), flat[i]->sumCos(),rp->sumw(), rp->mult(),rp->label().data());
       }
+    }
   }
   
   for(int i = 0; i< NumEPNames; i++) {
@@ -257,7 +259,6 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
     
   }
   iEvent.put(evtplaneOutput);
-  //storeNames_ = 0;  
 }
 
 // ------------ method called once each job just before starting event loop  ------------

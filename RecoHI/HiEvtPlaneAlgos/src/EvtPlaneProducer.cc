@@ -100,12 +100,13 @@ private:
       }
     }
     
-    double getAngle(double &ang, double &sv, double &cv, uint &epmult){
+    double getAngle(double &ang, double &sv, double &cv, double &w, uint &epmult){
       ang = -10;
       sv = 0;
       cv = 0;
       sv = sumsin;
       cv = sumcos;
+      w = sumw;
       epmult = mult;
       double q = sv*sv+cv*cv;
       if(q>0) ang = atan2(sv,cv)/order;
@@ -114,6 +115,7 @@ private:
     void reset() {
       sumsin=0;
       sumcos=0;
+      sumw = 0;
       mult = 0;
     }
   private:
@@ -138,16 +140,37 @@ private:
   virtual void endJob() ;
   
   // ----------member data ---------------------------
-  edm::InputTag vtxCollection_;
-  edm::InputTag caloCollection_;
-  edm::InputTag trackCollection_;
-  edm::InputTag centrality_;
+  // edm::InputTag vtxCollection_;
+  // edm::InputTag caloCollection_;
+  // edm::InputTag trackCollection_;
 
   edm::Service<TFileService> fs;
+
+  edm::InputTag centralityTag_;  
+  //edm::EDGetTokenT<reco::Centrality> centralityToken;
+  edm::Handle<reco::Centrality> centrality_;
+
+  edm::InputTag vertexTag_;
+  //edm::EDGetTokenT<std::vector<reco::Vertex>> vertexToken;
+  edm::Handle<std::vector<reco::Vertex>> vertex_;
+
+  edm::InputTag caloTag_;
+  //edm::EDGetTokenT<CaloTowerCollection> caloToken;
+  edm::Handle<CaloTowerCollection> caloCollection_;
+
+  edm::InputTag trackTag_;
+  //edm::EDGetTokenT<reco::TrackCollection> trackToken;
+  edm::Handle<reco::TrackCollection> trackCollection_;
+
+  edm::InputTag inputPlanesTag_;
+  //edm::EDGetTokenT<reco::EvtPlaneCollection> inputPlanesToken;
+  edm::Handle<reco::EvtPlaneCollection> inputPlanes_;
+
   bool useECAL_;
   bool useHCAL_;
   bool useTrack_;
   bool loadDB_;
+  double centScale_;
   double minet_;
   double maxet_;
   double effm_;
@@ -157,8 +180,10 @@ private:
   double maxvtx_;
   double dzerr_;
   double chi2_;
-  bool storeNames_;
   bool FirstEvent;
+  int FlatOrder_;
+  int NumFlatCentBins_;
+  int CentBinCompression_;
   CentralityProvider * centProvider;
   HiEvtPlaneFlatten * flat[NumEPNames];
 };
@@ -175,25 +200,41 @@ private:
 // constructors and destructor
 //
 EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig) {
-  centProvider = 0;
-  vtxCollection_  = iConfig.getParameter<edm::InputTag>("vtxCollection_");
-  caloCollection_  = iConfig.getParameter<edm::InputTag>("caloCollection_");
-  trackCollection_  = iConfig.getParameter<edm::InputTag>("trackCollection_");
-  centrality_ = iConfig.getParameter<edm::InputTag>("centrality_");
+  //centProvider = 0;
+  //vtxCollection_  = iConfig.getParameter<edm::InputTag>("vtxCollection_");
+  //caloCollection_  = iConfig.getParameter<edm::InputTag>("caloCollection_");
+  //trackCollection_  = iConfig.getParameter<edm::InputTag>("trackCollection_");
+
+  centralityTag_ = iConfig.getParameter<edm::InputTag>("centralityTag_");
+  //centralityToken = consumes<reco::Centrality>(centralityTag_);
+
+  vertexTag_  = iConfig.getParameter<edm::InputTag>("vertexTag_");
+  //vertexToken = consumes<std::vector<reco::Vertex>>(vertexTag_);
+
+  caloTag_ = iConfig.getParameter<edm::InputTag>("caloTag_");
+  //caloToken = consumes<CaloTowerCollection>(caloTag_);
+
+  trackTag_ = iConfig.getParameter<edm::InputTag>("trackTag_");
+  //trackToken = consumes<reco::TrackCollection>(trackTag_);
+
+  inputPlanesTag_ = iConfig.getParameter<edm::InputTag>("inputPlanesTag_");
+  //inputPlanesToken = consumes<reco::EvtPlaneCollection>(inputPlanesTag_);
+
+  centScale_ = iConfig.getUntrackedParameter<double>("centScale_",5000);
+
+  FlatOrder_ = iConfig.getUntrackedParameter<int>("FlatOrder_", 9);
+  NumFlatCentBins_ = iConfig.getUntrackedParameter<int>("NumFlatCentBins_",50);
+  CentBinCompression_ = iConfig.getUntrackedParameter<int>("CentBinCompression_",1);
   loadDB_ = iConfig.getUntrackedParameter<bool>("loadDB_",true);
-  useECAL_ = iConfig.getUntrackedParameter<bool>("useECAL_",true);
-  useHCAL_ = iConfig.getUntrackedParameter<bool>("useHCAL_",true);
-  useTrack_ = iConfig.getUntrackedParameter<bool>("useTrack",true);
 
   minet_ = iConfig.getUntrackedParameter<double>("minet_",0.5);
   maxet_ = iConfig.getUntrackedParameter<double>("maxet_",80.);
   minpt_ = iConfig.getUntrackedParameter<double>("minpt_",0.3);
-  maxpt_ = iConfig.getUntrackedParameter<double>("maxpt_",2.5);
+  maxpt_ = iConfig.getUntrackedParameter<double>("maxpt_",2.6);
   minvtx_ = iConfig.getUntrackedParameter<double>("minvtx_",-25.);
   maxvtx_ = iConfig.getUntrackedParameter<double>("maxvtx_",25.);
   dzerr_ = iConfig.getUntrackedParameter<double>("dzerr_",10.);
   chi2_  = iConfig.getUntrackedParameter<double>("chi2_",40.);
-  storeNames_ = 1;
   FirstEvent = kTRUE;
   produces<reco::EvtPlaneCollection>("recoLevel");
   for(int i = 0; i<NumEPNames; i++ ) {
@@ -201,7 +242,7 @@ EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig) {
   }
   for(int i = 0; i<NumEPNames; i++) {
     flat[i] = new HiEvtPlaneFlatten();
-    flat[i]->Init(FlatOrder,NumFlatCentBins,CentBinCompression,EPNames[i],EPOrder[i]);
+    flat[i]->Init(FlatOrder_,NumFlatCentBins_,CentBinCompression_,EPNames[i],EPOrder[i]);
   }
   cout<<"====================="<<endl;
   cout<<"EvtPlaneProducer: "<<endl;
@@ -247,7 +288,6 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     edm::ESHandle<RPFlatParams> flatparmsDB_;
     iSetup.get<HeavyIonRPRcd>().get(flatparmsDB_);
     int flatTableSize = flatparmsDB_->m_table.size();
-    cout<<"flatTableSize: "<<flatTableSize<<endl;
     for(int i = 0; i<flatTableSize; i++) {
       const RPFlatParams::EP* thisBin = &(flatparmsDB_->m_table[i]);
       for(int j = 0; j<NumEPNames; j++) {
@@ -273,11 +313,15 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   //
   //Get Centrality
   //
-  if(!centProvider) centProvider = new CentralityProvider(iSetup);
-  centProvider->newEvent(iEvent,iSetup);
-  centProvider->raw();
-  int bin = centProvider->getBin();
-  if(centProvider->getNbins()<=100) bin=2*bin;
+  //if(!centProvider) centProvider = new CentralityProvider(iSetup);
+  //centProvider->newEvent(iEvent,iSetup);
+  //centProvider->raw();
+  int bin = 0;
+  iEvent.getByLabel(centralityTag_, centrality_); 
+  double centval = centrality_->EtHFhitSum();
+  bin = NumFlatCentBins_*CentBinCompression_*centval/centScale_;
+  if(bin>NumFlatCentBins_) bin=NumFlatCentBins_;
+
 
   int vs_sell;
   float vzr_sell;
@@ -285,9 +329,8 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   //
   //Get Vertex
   //
-  edm::Handle<reco::VertexCollection> vertexCollection3;
-  iEvent.getByLabel(vtxCollection_,vertexCollection3);
-  const reco::VertexCollection * vertices3 = vertexCollection3.product();
+  iEvent.getByLabel(vertexTag_,vertex_);
+  const reco::VertexCollection * vertices3 = vertex_.product();
   vs_sell = vertices3->size();
   if(vs_sell>0) {
     vzr_sell = vertices3->begin()->z();
@@ -303,11 +346,11 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     
     double tower_eta, tower_phi;
     double tower_energyet, tower_energyet_e, tower_energyet_h;
-    Handle<CaloTowerCollection> calotower;
-    iEvent.getByLabel(caloCollection_,calotower);
+ 
+    iEvent.getByLabel(caloTag_,caloCollection_);
     
-    if(calotower.isValid()){
-      for (CaloTowerCollection::const_iterator j = calotower->begin();j !=calotower->end(); j++) {   
+    if(caloCollection_.isValid()){
+      for (CaloTowerCollection::const_iterator j = caloCollection_->begin();j !=caloCollection_->end(); j++) {   
 	tower_eta        = j->eta();
 	tower_phi        = j->phi();
 	tower_energyet_e   = j->emEt();
@@ -336,19 +379,17 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     double track_phi;
     double track_pt;
    
-    Handle<reco::TrackCollection> tracks;
-    iEvent.getByLabel(trackCollection_, tracks);
-    if(tracks.isValid()){
-      for(reco::TrackCollection::const_iterator j = tracks->begin(); j != tracks->end(); j++){	
-	edm::Handle<reco::VertexCollection> vertex;
-	iEvent.getByLabel(vtxCollection_, vertex);	    
+    iEvent.getByLabel(trackTag_, trackCollection_);
+    if(trackCollection_.isValid()){
+      for(reco::TrackCollection::const_iterator j = trackCollection_->begin(); j != trackCollection_->end(); j++){	
+	iEvent.getByLabel(vertexTag_, vertex_);	    
 	math::XYZPoint vtxPoint(0.0,0.0,0.0);
 	double vzErr =0.0, vxErr=0.0, vyErr=0.0;
-	if(vertex->size()>0) {
-	  vtxPoint=vertex->begin()->position();
-	  vzErr=vertex->begin()->zError();
-	  vxErr=vertex->begin()->xError();
-	  vyErr=vertex->begin()->yError();
+	if(vertex_->size()>0) {
+	  vtxPoint=vertex_->begin()->position();
+	  vzErr=vertex_->begin()->zError();
+	  vxErr=vertex_->begin()->xError();
+	  vyErr=vertex_->begin()->yError();
 	}
 	bool accepted = true;
 	bool isPixel = false;
@@ -408,34 +449,20 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     double ang=-10;
     double sv = 0;
     double cv = 0;
+    double wv = 0;
     uint epmult = 0;
 
     for(int i = 0; i<NumEPNames; i++) {
-      rp[i]->getAngle(ang,sv,cv,epmult);
-      if(storeNames_) ep[i] = new EvtPlane(ang,sv,cv,epmult,EPNames[i]);
-      else ep[i] = new EvtPlane(ang,sv,cv,epmult,"");
+      rp[i]->getAngle(ang,sv,cv,wv,epmult);
+      ep[i] = new EvtPlane(ang,sv,cv,wv,epmult,EPNames[i]);
     }
-    if(useTrack_) {
-      for(int i = 0; i<15; i++) {
-	evtplaneOutput->push_back(*ep[i]);
-      }  
-    }
-    for(int i = 15; i<NumEPNames; i++) {
-      if(useECAL_ && !useHCAL_) {
-	if(EPNames[i].rfind("Ecal")!=string::npos) {
-	  evtplaneOutput->push_back(*ep[i]);
-	}
-      } else if (useHCAL_ && !useECAL_) {
-	if(EPNames[i].rfind("Hcal")!=string::npos) {
-	  evtplaneOutput->push_back(*ep[i]);
-	}
-      }else if (useECAL_ && useHCAL_) {
-	evtplaneOutput->push_back(*ep[i]);
-      }
-    }
+
+    for(int i = 0; i<NumEPNames; i++) {
+      evtplaneOutput->push_back(*ep[i]);
+    }  
+    
     
     iEvent.put(evtplaneOutput, "recoLevel");
-    //  storeNames_ = 0;
   }
 }
 

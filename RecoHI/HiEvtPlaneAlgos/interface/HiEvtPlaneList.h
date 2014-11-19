@@ -5,19 +5,19 @@ Indx       Name Order EtaMin1 EtaMax1 EtaMin2 EtaMax2 ResCalcType MomConsWeight 
    0      HFm2      2    -5.0    -3.0     0.0     0.0       3sub          no          HFp2     trackmid2
    1      HFp2      2     3.0     5.0     0.0     0.0       3sub          no          HFm2     trackmid2
    2       HF2      2    -5.0    -3.0     3.0     5.0       3sub          no       trackm2       trackp2
-   3 trackmid2      2    -0.7     0.7     0.0     0.0       3sub          no          HFm2          HFp2
+   3 trackmid2      2    -0.75     0.75     0.0     0.0       3sub          no          HFm2          HFp2
    4   trackm2      2    -2.0    -1.0     0.0     0.0       3sub          no          HFm2          HFp2
    5   trackp2      2     1.0     2.0     0.0     0.0       3sub          no          HFm2          HFp2
    6      HFm3      3    -5.0    -3.0     0.0     0.0       3sub          no          HFp3     trackmid3
    7      HFp3      3     3.0     5.0     0.0     0.0       3sub          no          HFm3     trackmid3
    8       HF3      3    -5.0    -3.0     3.0     5.0       3sub          no       trackm3       trackp3
-   9 trackmid3      3    -0.7     0.7     0.0     0.0       3sub          no          HFm3          HFp3
+   9 trackmid3      3    -0.75     0.75     0.0     0.0       3sub          no          HFm3          HFp3
   10   trackm3      3    -2.0    -1.0     0.0     0.0       3sub          no          HFm3          HFp3
   11   trackp3      3     1.0     2.0     0.0     0.0       3sub          no          HFm3          HFp3
   12      HFm4      4    -5.0    -3.0     0.0     0.0       3sub          no          HFp4     trackmid4
   13      HFp4      4     3.0     5.0     0.0     0.0       3sub          no          HFm4     trackmid4
   14       HF4      4    -5.0    -3.0     3.0     5.0       3sub          no       trackm4       trackp4
-  15 trackmid4      4    -0.7     0.7     0.0     0.0       3sub          no          HFm4          HFp4
+  15 trackmid4      4    -0.75     0.75     0.0     0.0       3sub          no          HFm4          HFp4
   16   trackm4      4    -2.0    -1.0     0.0     0.0       3sub          no          HFm4          HFp4
   17   trackp4      4     1.0     2.0     0.0     0.0       3sub          no          HFm4          HFp4
   18      HFm1      1    -5.0    -3.0     0.0     0.0       2sub          no          HFp1              
@@ -117,9 +117,5 @@ const std::string MomConsWeight[] = {
 "no",	"yes",	"yes",	"yes",	"yes"
 };
 static const int NumEPNames = 25;
-static const int FlatOrder = 9;
-static const int NumFlatCentBins = 50; //bins AFTER compression
-//CentBinCompression*NumFlatCentBins = #bins from centrality module
-static const int CentBinCompression = 4;
 }
 #endif
