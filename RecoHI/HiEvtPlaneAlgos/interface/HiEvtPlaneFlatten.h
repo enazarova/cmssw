@@ -49,25 +49,29 @@ public:
   explicit HiEvtPlaneFlatten()
   {
     pi = TMath::Pi();
-    hcentbins = 1;
+    hbins = 1;
     hOrder = 9;
     vorder = 2;    //sets default order of event plane
     minvtx = -25;
     delvtx = 5;
     nvtxbins = 10;
   }
-  void Init(int order, int ncentbins,const int centbinCompression, std::string tag, int vord)
+
+
+  void Init(int order, int nbins,  const int hfetscale, std::string tag, int vord)
   {
     hOrder = order;  //order of flattening
     vorder = vord;   //1(v1), 2(v2), 3(v3), 4(v4)	
-    hcentbins = ncentbins;
-    centbinComp = centbinCompression;
-    if(hcentbins<=0) hcentbins = 1;
-    hbins = hcentbins*nvtxbins*hOrder;
-    obins = hcentbins*nvtxbins;
+    hfetbins = nbins;
+    caloCentRefMinBin_ = -1;
+    caloCentRefMaxBin_ = -1;
+    scale = (double) hfetscale;
+    if(hfetbins<=0) hfetbins = 1;
+    hbins = hfetbins*nvtxbins*hOrder;
+    obins = hfetbins*nvtxbins;
     if(hbins>MAXCUT) {
       std::cout<<"Too many cuts for flattening calculation.  RESET to deaults"<<std::endl;
-      hcentbins = 1;
+      hbins = 1;
       hOrder = 9;
     }
     for(int i = 0; i<hbins; i++) {
@@ -95,11 +99,14 @@ public:
   int GetCutIndx(int centbin, double vtx, int iord)
   {
     int cut;
-    int icent = centbin/centbinComp;
-    if(centbin < 0 || icent >= hcentbins) return -1;
+    if(centbin < 0 ) return -1;
+    //int ietbin = hfetbins*log10( 9.*(et/scale)+1.);
+    //if(ietbin>hfetbins) ietbin=hfetbins-1;
+    int ibin = centbin;
     int ivtx = (vtx-minvtx)/delvtx;
+    //std::cout<<et<<"\t"<<ietbin<<"\t"<<ivtx<<std::endl;
     if(vtx < minvtx || ivtx >= nvtxbins) return -1;
-    cut = hOrder*nvtxbins*icent + hOrder*ivtx + iord;
+    cut = hOrder*nvtxbins*ibin + hOrder*ivtx + iord;
     if(cut<0 || cut>=hbins) return -1;
     return cut;
   }
@@ -107,11 +114,13 @@ public:
   int GetOffsetIndx(int centbin, double vtx)
   {
     int cut;
-    int icent = centbin/centbinComp;
-    if(icent < 0 || icent > hcentbins) return -1;
+    if(centbin < 0 ) return -1;
+    //int ietbin = hfetbins*log10( 9.*(et/scale)+1.);
+    //if(ietbin>hfetbins) ietbin=hfetbins-1;
+    int ibin = centbin;
     int ivtx = (vtx-minvtx)/delvtx;
     if(ivtx < 0 || ivtx > nvtxbins) return -1;
-    cut = nvtxbins*icent + ivtx ;
+    cut = nvtxbins*ibin + ivtx ;
     if(cut<0 || cut>hbins) return -1;
     return cut;
   }
@@ -151,23 +160,44 @@ public:
     }
   }
 
+  void SetCaloCentRefBins(const int caloCentRefMinBin, const int caloCentRefMaxBin) {
+    caloCentRefMinBin_ = caloCentRefMinBin;
+    caloCentRefMaxBin_ = caloCentRefMaxBin;
+    caloCentRefVal_ = 1.;
+  }
+
+  double GetEtScale(double vtx, int centbin) {
+    int indx = GetOffsetIndx(centbin,vtx);
+    if(caloCentRefMinBin_<0) return 1.;
+    int refmin = GetOffsetIndx(caloCentRefMinBin_,vtx);
+    int refmax = GetOffsetIndx(caloCentRefMaxBin_,vtx);
+    caloCentRefVal_ = 0;
+    for(int i = refmin; i<=refmax; i++) {
+      caloCentRefVal_+=GetPtDB(i);
+    }    
+    caloCentRefVal_/=refmax-refmin+1.;
+    if(caloCentRefVal_==0 || GetPtDB(indx)==0) return 1.;
+    return caloCentRefVal_/GetPtDB(indx);
+   }
+
   double GetW(double pt, double vtx, int centbin)
   {
   
     int indx = GetOffsetIndx(centbin,vtx);
     if(indx>=0) {
-      double ptval = GetPtDB(indx);
-      double pt2val = GetPt2DB(indx);
-      if(ptval>0) return pt-pt2val/ptval;
+      double scale = GetEtScale(vtx,centbin);
+      double ptval = GetPtDB(indx)*scale;
+      double pt2val = GetPt2DB(indx)*pow(scale,2);
+      if(ptval>0) return pt*scale-pt2val/ptval;
     }
     return 0.;
   }
 
-  double GetFlatPsi(double psi, double vtx, double cent)
+  double GetFlatPsi(double psi, double vtx, int centbin)
   {
     double correction = 0;
     for(int k = 0; k<hOrder; k++) {
-      int indx = GetCutIndx(cent,vtx,k);
+      int indx = GetCutIndx(centbin,vtx,k);
       if(indx>=0) correction+=(2./(double)((k+1)*vorder))*(flatXDB[indx]*sin(vorder*(k+1)*psi)-flatYDB[indx]*cos(vorder*(k+1)*psi));
     }
     psi+=correction;
@@ -176,9 +206,9 @@ public:
     return psi;
   }
   
-  double GetOffsetPsi(double s, double c, double w, uint m,  double vtx, double cent)
+  double GetOffsetPsi(double s, double c, double w, uint m,  double vtx, int centbin)
   {
-    int indx = GetOffsetIndx(cent,vtx);
+    int indx = GetOffsetIndx(centbin,vtx);
     double snew = s-yoffDB[indx];
     double cnew = c-xoffDB[indx];
     double psi = atan2(snew,cnew)/vorder;
@@ -199,7 +229,7 @@ public:
   int GetNvtx(){return nvtxbins;}
   double GetVtxMin(){return minvtx;}
   double GetVtxMax(){return minvtx+nvtxbins*delvtx;}
-  int GetNcent(){return hcentbins;}
+  int GetNcent(){return hbins;}
 
   double GetX(int bin){return flatX[bin];}
   double GetY(int bin){return flatY[bin];}
@@ -214,6 +244,8 @@ public:
   double GetPtDB(int bin){return ptDB[bin];}
   double GetPt2DB(int bin){return pt2DB[bin];}
   double GetPtcnt(int bin){return ptcnt[bin];}
+  double GetXDB(int bin) {return flatXDB[bin];}
+  double GetYDB(int bin) {return flatYDB[bin];}
 
 
   double GetCnt(int bin) {return flatCnt[bin];}
@@ -223,6 +255,14 @@ public:
   void SetYoffDB(int indx, double val) {yoffDB[indx]=val;}
   void SetPtDB(int indx, double val) {ptDB[indx]=val;}
   void SetPt2DB(int indx, double val) {pt2DB[indx]=val;}
+  int GetHFbin(int hfetval){
+    double v = 9.*(hfetval/scale)+1;
+    v =  hfetbins*log10(v);
+    int vout = v;
+    if(vout<0) vout=0;
+    if(vout>(hfetbins-1)) vout=hfetbins-1;
+    return vout;
+  }
   double sumSin() const { return soff_; }
   double sumCos() const { return coff_; }
   double sumw()  const { return w_; }
@@ -241,6 +281,33 @@ public:
     while(ang>range)  {ang-=2*range; }
     return ang;
   }
+  void SetCentRes1(int bin, double res, double err){ if(bin<100 && bin>=0) {centRes1[bin]=res; centResErr1[bin]=err;}}
+  void SetCentRes2(int bin, double res, double err){ if(bin<50 && bin>=0) {centRes2[bin]=res; centResErr2[bin]=err;}}
+  void SetCentRes5(int bin, double res, double err){ if(bin<20 && bin>=0) {centRes5[bin]=res; centResErr5[bin]=err;}}
+  void SetCentRes10(int bin, double res, double err){ if(bin<10 && bin>=0) {centRes10[bin]=res; centResErr10[bin]=err;}}
+  void SetCentRes20(int bin, double res, double err){ if(bin<5 && bin>=0) {centRes20[bin]=res; centResErr20[bin]=err;}}
+  void SetCentRes25(int bin, double res, double err){ if(bin<4 && bin>=0) {centRes25[bin]=res; centResErr25[bin]=err;}}
+  void SetCentRes30(int bin, double res, double err){ if(bin<3 && bin>=0) {centRes30[bin]=res; centResErr30[bin]=err;}}
+  void SetCentRes40(int bin, double res, double err){ if(bin<2 && bin>=0) {centRes40[bin]=res; centResErr40[bin]=err;}}
+
+  double GetCentRes1(int bin){ if(bin<100 && bin>=0) {return centRes1[bin];} else {return 0.;}}
+  double GetCentRes2(int bin){ if(bin<50 && bin>=0)  {return centRes2[bin];} else {return 0.;}}
+  double GetCentRes5(int bin){ if(bin<20 && bin>=0)  {return centRes5[bin];} else {return 0.;}}
+  double GetCentRes10(int bin){ if(bin<10 && bin>=0) {return centRes10[bin];} else {return 0.;}}
+  double GetCentRes20(int bin){ if(bin<5 && bin>=0)  {return centRes20[bin];} else {return 0.;}}
+  double GetCentRes25(int bin){ if(bin<4 && bin>=0)  {return centRes25[bin];} else {return 0.;}}
+  double GetCentRes30(int bin){ if(bin<3 && bin>=0)  {return centRes30[bin];} else {return 0.;}}
+  double GetCentRes40(int bin){ if(bin<2 && bin>=0)  {return centRes40[bin];} else {return 0.;}}
+
+  double GetCentResErr1(int bin){ if(bin<100 && bin>=0) {return centResErr1[bin];} else {return 0.;}}
+  double GetCentResErr2(int bin){ if(bin<50 && bin>=0)  {return centResErr2[bin];} else {return 0.;}}
+  double GetCentResErr5(int bin){ if(bin<20 && bin>=0)  {return centResErr5[bin];} else {return 0.;}}
+  double GetCentResErr10(int bin){ if(bin<10 && bin>=0) {return centResErr10[bin];} else {return 0.;}}
+  double GetCentResErr20(int bin){ if(bin<5 && bin>=0)  {return centResErr20[bin];} else {return 0.;}}
+  double GetCentResErr25(int bin){ if(bin<4 && bin>=0)  {return centResErr25[bin];} else {return 0.;}}
+  double GetCentResErr30(int bin){ if(bin<3 && bin>=0)  {return centResErr30[bin];} else {return 0.;}}
+  double GetCentResErr40(int bin){ if(bin<2 && bin>=0)  {return centResErr40[bin];} else {return 0.;}}
+
 private:
   double flatX[MAXCUT];
   double flatY[MAXCUT];
@@ -263,12 +330,40 @@ private:
   double pt2DB[MAXCUTOFF];
   double ptcnt[MAXCUTOFF];
 
+  double centRes1[100];
+  double centResErr1[100];
+
+  double centRes2[50];
+  double centResErr2[50];
+
+  double centRes5[20];
+  double centResErr5[20];
+
+  double centRes10[10];
+  double centResErr10[10];
+
+  double centRes20[5];
+  double centResErr20[5];
+
+  double centRes25[4];
+  double centResErr25[4];
+
+  double centRes30[3];
+  double centResErr30[3];
+
+  double centRes40[2];
+  double centResErr40[2];
+
+
   int hOrder;    //flattening order
-  int hcentbins; //# of centrality bins
-  int centbinComp;
+  int hfetbins; //# of hfet bins
+  double scale;
   int hbins; //number of bins needed for flattening
   int obins; //number of (x,y) offset bins
   int vorder; //order of flattened event plane
+  int caloCentRefMinBin_; //min ref centrality bin for calo weight scale
+  int caloCentRefMaxBin_; //max ref centrality bin for calo weight scale
+  double caloCentRefVal_; //reference <pt> or <et>
   double pi;
 
   int nvtxbins;
