@@ -344,19 +344,6 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
   hvtx = fs->make<TH1D>("vtx","vtx",1000,-50,50);  
   hruns = fs->make<TH1I>("runs","runs",maxrun_ - minrun_ + 1,minrun_,maxrun_);
   hpixelTrack = fs->make<TH1I>("pixelTrack","pixelTrack",2,1,3);
-  cout<<"=========================="<<endl;
-  cout<<"HiEvtPlaneFlatCalib:      "<<endl;
-  cout<<"  NumFlatBins_:           "<<NumFlatBins_<<endl;
-  cout<<"  CentBinCompression_:    "<<CentBinCompression_<<endl;
-  cout<<"  minet_:                 "<<minet_<<endl;
-  cout<<"  maxet_:                 "<<maxet_<<endl;
-  cout<<"  minpt_:                 "<<minpt_<<endl;
-  cout<<"  maxpt_:                 "<<maxpt_<<endl;
-  cout<<"  minvtx_:                "<<minvtx_<<endl;
-  cout<<"  maxvtx_:                "<<maxvtx_<<endl;
-  cout<<"  dzerr_                  "<<dzerr_<<endl;
-  cout<<"  chi2_                   "<<chi2_<<endl;
-  cout<<"=========================="<<endl;
   TString epnames = EPNames[0].data();
   epnames = epnames+"/D";
   for(int i = 0; i<NumEPNames; i++) {
@@ -503,6 +490,22 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
   Noffmin_ = iConfig.getUntrackedParameter<int>("Noffmin_", 0);
   Noffmax_ = iConfig.getUntrackedParameter<int>("Noffmax_", 50000);	
   hNtrkoff = fs->make<TH1D>("Ntrkoff","Ntrkoff",1001,0,3000);
+  cout<<"=========================="<<endl;
+  cout<<"HiEvtPlaneFlatCalib:      "<<endl;
+  cout<<"  NumFlatBins_:           "<<NumFlatBins_<<endl;
+  cout<<"  CentBinCompression_:    "<<CentBinCompression_<<endl;
+  cout<<"  minet_:                 "<<minet_<<endl;
+  cout<<"  maxet_:                 "<<maxet_<<endl;
+  cout<<"  minpt_:                 "<<minpt_<<endl;
+  cout<<"  maxpt_:                 "<<maxpt_<<endl;
+  cout<<"  minvtx_:                "<<minvtx_<<endl;
+  cout<<"  maxvtx_:                "<<maxvtx_<<endl;
+  cout<<"  dzerr_                  "<<dzerr_<<endl;
+  cout<<"  chi2_                   "<<chi2_<<endl;
+  cout<<"  Noffmin_:               "<<Noffmin_<<endl;
+  cout<<"  Noffmax_:               "<<Noffmax_<<endl;
+  cout<<"  hNtrkoff:               "<<hNtrkoff<<endl;
+  cout<<"=========================="<<endl;
 
   centProvider = 0;
 }
@@ -529,9 +532,12 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   using namespace std;
   using namespace reco;
 
+  Bool_t newrun = kFALSE;
+  if(runno_ != iEvent.id().run()) newrun = kTRUE;
   runno_ = iEvent.id().run();
-  if(FirstEvent) {
+  if(FirstEvent || newrun) {
     FirstEvent = kFALSE;
+    newrun = kFALSE;
     //
     //Get Flattening Parameters
     //
@@ -544,7 +550,7 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	genFlatPsi_ = kFALSE;
       }
       int flatTableSize = flatparmsDB_->m_table.size();
-            for(int i = 0; i<flatTableSize; i++) {
+      for(int i = 0; i<flatTableSize; i++) {
 	for(int j = 0; j<NumEPNames; j++) {
 	  int Hbins = flat[j]->GetHBins();
 	  int Obins = flat[j]->GetOBins();
@@ -562,8 +568,6 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	  } 
 	}
       }
-
-
     }
   } //First event
   
@@ -591,6 +595,7 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
 
   if(!centProvider) {
+    for(int i = 0; i< NumEPNames; i++) flat[i]->SetCaloCentRefBins(-1,-1);
     centProvider = new CentralityProvider(iSetup);
     int minbin = (caloCentRef_-caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
     int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
@@ -878,9 +883,9 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       epang_offset[i] = psiOffset;
       flat[i]->Fill(psiOffset,vtx,bin);
       flat[i]->FillOffset(s,c,m,vtx,bin);
-      if(bin>1&&abs(vtx)<plotZrange) hPsi[i]->Fill(angorig);
+      if(bin>=0&&abs(vtx)<plotZrange) hPsi[i]->Fill(angorig);
       if(genFlatPsi_) {
-	if(bin>1&&abs(vtx)<plotZrange) {
+	if(bin>=0&&abs(vtx)<plotZrange) {
 	  hPsiFlat[i]->Fill(psiFlat);
 	  hPsiOffset[i]->Fill(psiOffset);
 	  hPsiPsiFlat[i]->Fill(angorig,psiFlat);

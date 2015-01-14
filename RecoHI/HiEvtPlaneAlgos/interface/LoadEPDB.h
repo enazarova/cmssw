@@ -33,7 +33,7 @@ class LoadEPDB {
     int Hbins;
     int Obins;
     int flatTableSize = flatparmsDB_->m_table.size();
-    genFlatPsi_ = kTRUE;; 
+    genFlatPsi_ = kTRUE;
     if(flatTableSize<flat[0]->GetHBins()+2*flat[0]->GetOBins()) {
       genFlatPsi_ = kFALSE;
     } else {
@@ -56,10 +56,10 @@ class LoadEPDB {
 	      flat[indx]->SetXoffDB(i - Hbins, thisBin->x[j]);
 	      flat[indx]->SetYoffDB(i - Hbins, thisBin->y[j]);
 	      
-	    } else if (i>=Hbins+Obins) {
+	    } else if (i>=Hbins+Obins && i<Hbins+2*Obins) {
 	      flat[indx]->SetPtDB(i - Hbins- Obins, thisBin->x[j]);
 	      flat[indx]->SetPt2DB(i - Hbins- Obins, thisBin->y[j]);
-	    }
+	    } 
 	  }
 	}
       }

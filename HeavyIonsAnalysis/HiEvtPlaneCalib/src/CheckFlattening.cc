@@ -90,6 +90,10 @@ private:
   //edm::EDGetTokenT<reco::EvtPlaneCollection> inputPlanesToken;
   edm::Handle<reco::EvtPlaneCollection> inputPlanes_;
 
+  edm::InputTag trackTag_;
+  //edm::EDGetTokenT<reco::TrackCollection> trackToken;
+  edm::Handle<reco::TrackCollection> trackCollection_;
+
   CentralityProvider * centProvider;
   edm::Service<TFileService> fs;
   int vs_sell;   // vertex collection size
@@ -98,7 +102,10 @@ private:
   TH1D * hcent;
   TH1D * hcentbins;
   double centval;
+  double ntrkval;
   double vtx;
+  int noff;
+
   Double_t epang[NumEPNames];
   Double_t epsin[NumEPNames];
   Double_t epcos[NumEPNames];
@@ -131,6 +138,7 @@ private:
   Double_t rescorErr[NumEPNames];
   unsigned int runno_;
 
+  TH1D * hNtrkoff;
   int nEtaBins;
   TH1I * hrun;
   string rpnames[NumEPNames];
@@ -142,12 +150,15 @@ private:
   int NumFlatBins_;
   int CentBinCompression_;
   int HFEtScale_;
+  int Noffmin_;
+  int Noffmax_;
 
   HiEvtPlaneFlatten * flat[NumEPNames];
   bool loadDB_;
   bool FirstEvent_;
 
   bool Branch_Cent;
+  bool Branch_NtrkOff;
   bool Branch_Vtx;
   bool Branch_epang;
   bool Branch_epang_orig;
@@ -172,6 +183,43 @@ private:
   bool Branch_Run;
   bool Branch_Rescor;
   bool Branch_RescorErr;
+
+
+  int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+  {
+    int Noff = 0;
+    using namespace edm;
+    using namespace reco;
+  
+    iEvent.getByLabel(vertexTag_, vertex_);
+    const VertexCollection * recoVertices = vertex_.product();
+  
+    int primaryvtx = 0;
+    math::XYZPoint v1( (*recoVertices)[primaryvtx].position().x(), (*recoVertices)[primaryvtx].position().y(), (*recoVertices)[primaryvtx].position().z() );
+    double vxError = (*recoVertices)[primaryvtx].xError();
+    double vyError = (*recoVertices)[primaryvtx].yError();
+    double vzError = (*recoVertices)[primaryvtx].zError();
+    iEvent.getByLabel(trackTag_,trackCollection_);
+    for(TrackCollection::const_iterator itTrack = trackCollection_->begin();
+	itTrack != trackCollection_->end();                      
+	++itTrack) {    
+      if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
+      if ( itTrack->charge() == 0 ) continue;
+      if ( itTrack->pt() < 0.4 ) continue;
+      double d0 = -1.* itTrack->dxy(v1);
+      double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
+      double dz=itTrack->dz(v1);
+      double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
+      if ( fabs(itTrack->eta()) > 2.4 ) continue;
+      if ( fabs( dz/dzerror ) > 3. ) continue;
+      if ( fabs( d0/derror ) > 3. ) continue;
+      if ( itTrack->ptError()/itTrack->pt() > 0.1 ) continue;
+      Noff++;
+    }
+    return Noff;
+  }
+
+
 };
 
 
@@ -181,6 +229,7 @@ private:
 CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   
 {
+  runno_ = 0;
   centProvider = 0;
   loadDB_ = kTRUE;
   FirstEvent_ = kTRUE;
@@ -190,6 +239,9 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   vertexTag_  = iConfig.getParameter<edm::InputTag>("vertexTag_");
   //vertexToken = consumes<std::vector<reco::Vertex>>(vertexTag_);
 
+  trackTag_ = iConfig.getParameter<edm::InputTag>("trackTag_");
+  //trackToken = consumes<reco::TrackCollection>(trackTag_);
+
   inputPlanesTag_ = iConfig.getParameter<edm::InputTag>("inputPlanesTag_");
   //inputPlanesToken = consumes<reco::EvtPlaneCollection>(inputPlanesTag_);
 
@@ -197,9 +249,12 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   NumFlatBins_ = iConfig.getUntrackedParameter<int>("NumFlatBins_",20);
   CentBinCompression_ = iConfig.getUntrackedParameter<int>("CentBinCompression_",5);
   HFEtScale_ = iConfig.getUntrackedParameter<int>("HFEtScale_",3800);
-
+  Noffmin_ = iConfig.getUntrackedParameter<int>("Noffmin_", 0);
+  Noffmax_ = iConfig.getUntrackedParameter<int>("Noffmax_", 50000);	
+  hNtrkoff = fs->make<TH1D>("Ntrkoff","Ntrkoff",1001,0,3000);
 
   Branch_Cent = iConfig.getUntrackedParameter<bool>("Branch_Cent",true);
+  Branch_NtrkOff = iConfig.getUntrackedParameter<bool>("Branch_NtrkOff",true);
   Branch_Vtx = iConfig.getUntrackedParameter<bool>("Branch_Vtx",true);
   Branch_epang = iConfig.getUntrackedParameter<bool>("Branch_epang",true);
   Branch_epang_orig = iConfig.getUntrackedParameter<bool>("Branch_epang_orig",true);
@@ -225,7 +280,6 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   Branch_Rescor = iConfig.getUntrackedParameter<bool>("Branch_Rescor",true);
   Branch_RescorErr = iConfig.getUntrackedParameter<bool>("Branch_RescorErr",true);
 
- 
   hcent = fs->make<TH1D>("cent","cent",220,-10,110);
   hcentbins = fs->make<TH1D>("centbins","centbins",201,0,200);
   hrun = fs->make<TH1I>("runs","runs",100000,150001,250000);
@@ -252,6 +306,7 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   tree = fs->make<TTree>("tree","EP tree");
 
   if(Branch_Cent)              tree->Branch("Cent",&centval,"cent/D");
+  if(Branch_NtrkOff)           tree->Branch("NtrkOff",&noff,"noff/D");
   if(Branch_Vtx)               tree->Branch("Vtx",&vtx,"vtx/D");
   if(Branch_epang)             tree->Branch("epang",&epang, epnames.Data());
   if(Branch_epang_orig)        tree->Branch("epang_orig",&epang_orig, epnames.Data());
@@ -302,9 +357,15 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   using namespace edm;
   using namespace std;
   using namespace reco;
+  Bool_t newrun = kFALSE;
+  if(runno_ != iEvent.id().run()) newrun = kTRUE;
+  runno_ = iEvent.id().run();
+  hrun->Fill(runno_);
 
-  if(FirstEvent_ && loadDB_) {
+  if(FirstEvent_ || newrun) {
     FirstEvent_ = kFALSE;
+    newrun = kFALSE;
+    cout<<"Load flattening parameters"<<endl;
     //
     //Get flattening parameter file.  
     //
@@ -316,14 +377,18 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     }        
   } //First event
 
-
-  //  using namespace HepMC;
-  runno_ = iEvent.id().run();
-  hrun->Fill(runno_);
   //
   //Get Centrality
   //
   int bin = 0;
+  int Noff = getNoff( iEvent, iSetup);
+  ntrkval = Noff;
+  if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
+    return;
+  }
+  hNtrkoff->Fill(Noff);
+
+
   if(!centProvider) centProvider = new CentralityProvider(iSetup);
   centProvider->newEvent(iEvent,iSetup);
   centProvider->raw();
@@ -390,9 +455,11 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     if(Branch_Rescor || Branch_RescorErr) {
       rescor[indx] = flat[indx]->GetCentRes1((int) centval);
       rescorErr[indx] = flat[indx]->GetCentResErr1((int) centval);
-
     }
-    if(centval<=80) Psi[indx]->Fill( rp->angle() );
+    if(centval<=80) {
+      Psi[indx]->Fill( rp->angle() );
+      PsiRaw[indx]->Fill( rp->angle(0) );
+    }
     ++indx; 
   }
 

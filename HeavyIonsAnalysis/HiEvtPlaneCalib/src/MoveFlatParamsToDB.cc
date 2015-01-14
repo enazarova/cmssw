@@ -213,16 +213,13 @@ bool MoveFlatParamsToDB::GetRescor(double bin, string epname, double * restmp, d
   cout<<Form("RescorTables/%s_%04.1f.dat Not FOUND",epname.data(),bin)<<endl;
     return false; 
   }
-  cout<<Form("RescorTables/%s_%04.1f.dat FOUND",epname.data(),bin)<<endl;
   int nbins = 0;
   char buf[80];
   while(fgets(buf,80,ftest)!=NULL) {
     double minc, maxc;
     sscanf(buf,"%lg\t%lg\t%lg\t%lg",&minc, &maxc, &restmp[nbins],&erestmp[nbins]);
-    cout<<nbins<<"\t"<<minc<<"\t"<<maxc<<"\t"<<restmp[nbins]<<"\t"<<erestmp[nbins]<<endl;
     ++nbins;
   }
-  cout<<"nbins: "<<nbins<<endl;
   return true;
 }
 
@@ -237,8 +234,38 @@ void MoveFlatParamsToDB::AddCentralityBins( double centbin, int nbins) {
     for(int j = 0; j<nbins; j++) {
       RPFlatParams::EP * thisBin = new RPFlatParams::EP();
       for(int i = 0; i<nRP; i++) {
-	thisBin->x[i] = res1[i][j];
-	thisBin->y[i] = eres1[i][j];
+	if(fabs(centbin-1.)<0.01) {
+	  thisBin->x[i] = res1[i][j];
+	  thisBin->y[i] = eres1[i][j];
+	}
+	if(fabs(centbin-2.)<0.01) {
+	  thisBin->x[i] = res2[i][j];
+	  thisBin->y[i] = eres2[i][j];
+	}
+	if(fabs(centbin-5.)<0.01) {
+	  thisBin->x[i] = res5[i][j];
+	  thisBin->y[i] = eres5[i][j];
+	}
+	if(fabs(centbin-10.)<0.01) {
+	  thisBin->x[i] = res10[i][j];
+	  thisBin->y[i] = eres10[i][j];
+	}
+	if(fabs(centbin-20.)<0.01) {
+	  thisBin->x[i] = res20[i][j];
+	  thisBin->y[i] = eres20[i][j];
+	}
+	if(fabs(centbin-25.)<0.01) {
+	  thisBin->x[i] = res25[i][j];
+	  thisBin->y[i] = eres25[i][j];
+	}
+	if(fabs(centbin-30.)<0.01) {
+	  thisBin->x[i] = res30[i][j];
+	  thisBin->y[i] = eres30[i][j];
+	}
+	if(fabs(centbin-40.)<0.01) {
+	  thisBin->x[i] = res40[i][j];
+	  thisBin->y[i] = eres40[i][j];
+	}
 	thisBin->RPNameIndx[i] = RPNameIndx[i];
       } 
       rpFlat->m_table.push_back(*thisBin);
@@ -282,7 +309,6 @@ MoveFlatParamsToDB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   if(cent40) centreserve+=2 + 1;
 
   rpFlat->m_table.reserve(x[0]->GetNbinsX() + centreserve);
-  cout<<"Size of table: "<<x[0]->GetNbinsX()<<endl;
   for(int j = 0; j<x[0]->GetNbinsX();j++) {
     RPFlatParams::EP * thisBin = new RPFlatParams::EP();
     for(int i = 0; i<nRP; i++) {
@@ -293,17 +319,14 @@ MoveFlatParamsToDB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     rpFlat->m_table.push_back(*thisBin);
     if(thisBin) delete thisBin;
   }
-  cout<<"Number of RP: "<<nRP<<endl;
-
   if(cent1) AddCentralityBins( 1.0, 100);
   if(cent2) AddCentralityBins( 2.0, 50);
   if(cent5) AddCentralityBins( 5.0, 20);
-  if(cent10) AddCentralityBins( 10.0, 10);
-  if(cent20) AddCentralityBins( 20.0, 5);
-  if(cent25) AddCentralityBins( 25.0, 4);
-  if(cent30) AddCentralityBins( 30.0, 3);
-  if(cent40) AddCentralityBins( 40.0, 2);
-  
+  if(cent10) AddCentralityBins(10.0, 10);
+  if(cent20) AddCentralityBins(20.0, 5);
+  if(cent25) AddCentralityBins(25.0, 4);
+  if(cent30) AddCentralityBins(30.0, 3);
+  if(cent40) AddCentralityBins(40.0, 2);
   edm::Service<cond::service::PoolDBOutputService> pool;
   if(pool.isAvailable()){
     if(pool->isNewTagRequest("HeavyIonRPRcd") ) {
@@ -312,7 +335,6 @@ MoveFlatParamsToDB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       pool->appendSinceTime<RPFlatParams>(rpFlat, pool->currentTime(),"HeavyIonRPRcd");
     }
   }
-  cout<<"DONE"<<endl;
 }
 
 

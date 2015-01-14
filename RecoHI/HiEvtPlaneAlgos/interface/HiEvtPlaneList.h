@@ -28,7 +28,7 @@ Indx       Name Order EtaMin1 EtaMax1 EtaMin2 EtaMax2 ResCalcType MomConsWeight 
   23    HFm1mc      1    -5.0    -3.0     0.0     0.0       3sub         yes        HFp1mc     trackp1mc
   24    HFp1mc      1     3.0     5.0     0.0     0.0       3sub         yes        HFm1mc     trackm1mc
   25   Castor2      2     5.1     6.55    0.0     0.0       3sub          no     trackmid2          HFm2
-  25 Castor1mc      1     5.1     6.55    0.0     0.0       3sub         yes     trackm1mc        HFm1mc
+  26 Castor1mc      1     5.1     6.55    0.0     0.0       3sub         yes     trackm1mc        HFm1mc
 
 */
 #include <string>

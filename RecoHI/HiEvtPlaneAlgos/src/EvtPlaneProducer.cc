@@ -354,6 +354,7 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
 
   if(!centProvider) {
+    for(int i=0; i<NumEPNames; i++) flat[i]->SetCaloCentRefBins(-1, -1);
     centProvider = new CentralityProvider(iSetup);
     int minbin = (caloCentRef_-caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
     int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
@@ -361,7 +362,7 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     maxbin/=CentBinCompression_;
     if(minbin>0 && maxbin>=minbin) {
       for(int i = 0; i<NumEPNames; i++) {
-	if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->SetCaloCentRefBins(minbin,maxbin);
+	if( EPDet[i]==HF || EPDet[i]==Castor) flat[i]->SetCaloCentRefBins(minbin,maxbin);
       }
     }
   }

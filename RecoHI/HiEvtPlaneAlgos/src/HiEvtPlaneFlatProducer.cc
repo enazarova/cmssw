@@ -104,6 +104,11 @@ class HiEvtPlaneFlatProducer : public edm::EDProducer {
 
   edm::InputTag inputPlanesTag_;
 
+
+  edm::InputTag trackTag_;
+  //edm::EDGetTokenT<reco::TrackCollection> trackToken;
+  edm::Handle<reco::TrackCollection> trackCollection_;
+
   int FlatOrder_;
   double caloCentRef_;
   double caloCentRefWidth_;
@@ -112,7 +117,10 @@ class HiEvtPlaneFlatProducer : public edm::EDProducer {
   int NumFlatBins_;
   int CentBinCompression_;
   int HFEtScale_;
-
+  int Noffmin_;
+  int Noffmax_;
+  double ntrkval;
+  unsigned int runno_;
   bool FirstEvent;
   HiEvtPlaneFlatten * flat[NumEPNames];
   RPFlatParams * rpFlat;
@@ -121,6 +129,42 @@ class HiEvtPlaneFlatProducer : public edm::EDProducer {
   int Hbins;
   int Obins;
   bool UseEtHF;
+
+  int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+  {
+    int Noff = 0;
+    using namespace edm;
+    using namespace reco;
+  
+    iEvent.getByLabel(vertexTag_, vertex_);
+    const VertexCollection * recoVertices = vertex_.product();
+  
+    int primaryvtx = 0;
+    math::XYZPoint v1( (*recoVertices)[primaryvtx].position().x(), (*recoVertices)[primaryvtx].position().y(), (*recoVertices)[primaryvtx].position().z() );
+    double vxError = (*recoVertices)[primaryvtx].xError();
+    double vyError = (*recoVertices)[primaryvtx].yError();
+    double vzError = (*recoVertices)[primaryvtx].zError();
+    iEvent.getByLabel(trackTag_,trackCollection_);
+    for(TrackCollection::const_iterator itTrack = trackCollection_->begin();
+	itTrack != trackCollection_->end();                      
+	++itTrack) {    
+      if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
+      if ( itTrack->charge() == 0 ) continue;
+      if ( itTrack->pt() < 0.4 ) continue;
+      double d0 = -1.* itTrack->dxy(v1);
+      double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
+      double dz=itTrack->dz(v1);
+      double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
+      if ( fabs(itTrack->eta()) > 2.4 ) continue;
+      if ( fabs( dz/dzerror ) > 3. ) continue;
+      if ( fabs( d0/derror ) > 3. ) continue;
+      if ( itTrack->ptError()/itTrack->pt() > 0.1 ) continue;
+      Noff++;
+    }
+    return Noff;
+  }
+
+
 };
 
 //
@@ -137,11 +181,12 @@ typedef TrackingParticleRefVector::iterator               tp_iterator;
 //
 // constructors and destructor
 //
-HiEvtPlaneFlatProducer::HiEvtPlaneFlatProducer(const edm::ParameterSet& iConfig)
+HiEvtPlaneFlatProducer::HiEvtPlaneFlatProducer(const edm::ParameterSet& iConfig):runno_(0)
 {
   UseEtHF = kFALSE;
   centralityTag_ = iConfig.getParameter<edm::InputTag>("centralityTag_");
   vertexTag_  = iConfig.getParameter<edm::InputTag>("vertexTag_");
+  trackTag_ = iConfig.getParameter<edm::InputTag>("trackTag_");
   inputPlanesTag_ = iConfig.getParameter<edm::InputTag>("inputPlanesTag_");
   FlatOrder_ = iConfig.getUntrackedParameter<int>("FlatOrder_", 9);
   NumFlatBins_ = iConfig.getUntrackedParameter<int>("NumFlatBins_",40);
@@ -149,6 +194,8 @@ HiEvtPlaneFlatProducer::HiEvtPlaneFlatProducer(const edm::ParameterSet& iConfig)
   caloCentRef_ = iConfig.getUntrackedParameter<double>("caloCentRef_",80.);
   caloCentRefWidth_ = iConfig.getUntrackedParameter<double>("caloCentRefWidth_",5.);
   HFEtScale_ = iConfig.getUntrackedParameter<int>("HFEtScale_",3800);
+  Noffmin_ = iConfig.getUntrackedParameter<int>("Noffmin_", 0);
+  Noffmax_ = iConfig.getUntrackedParameter<int>("Noffmax_", 50000);	
   useOffsetPsi_ = iConfig.getUntrackedParameter<bool>("useOffsetPsi_",true);
   FirstEvent = kTRUE;
    //register your products
@@ -186,11 +233,22 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   using namespace std;
   using namespace reco;
 
+  bool newrun = false;
+  if(runno_ != iEvent.id().run()) newrun = true;
+  runno_ = iEvent.id().run();
   //
   //Get Flattening Parameters
   //
-  if(FirstEvent) {
-    FirstEvent = kFALSE;
+  if(Noffmin_>=0) {
+    int Noff = getNoff( iEvent, iSetup);
+    ntrkval = Noff;
+    if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
+      return;
+    }
+  }
+  if(FirstEvent || newrun) {
+    FirstEvent = false;
+    newrun = false;
     edm::ESHandle<RPFlatParams> flatparmsDB_;
     iSetup.get<HeavyIonRPRcd>().get(flatparmsDB_);
     LoadEPDB * db = new LoadEPDB(flatparmsDB_,flat);
@@ -201,12 +259,14 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   //
 
   int bin = 0;
-  iEvent.getByLabel(centralityTag_, centrality_); 
-  double hfetval = centrality_->EtHFtowerSum();
-  bin = flat[0]->GetHFbin(hfetval);
-
+  try{iEvent.getByLabel(centralityTag_, centrality_);} catch(...){;}
+  if(centrality_.isValid()) { 
+    double hfetval = centrality_->EtHFtowerSum();
+    bin = flat[0]->GetHFbin(hfetval);
+  }
   
   if(!centProvider) {
+    for(int i = 0; i<NumEPNames; i++) flat[i]->SetCaloCentRefBins(-1,-1);
     centProvider = new CentralityProvider(iSetup);
     int minbin = (caloCentRef_-caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
     int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*centProvider->getNbins()/100.;

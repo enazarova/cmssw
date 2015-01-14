@@ -27,8 +27,8 @@ namespace reco { class EvtPlane {
     double      Qy(int level=2) const { return sumSin(level); }
     double      Qx(int level=2) const { return sumCos(level); }
     double      Q(int level=2)      const { return ((pow(Qx(level),2)+pow(Qy(level),2))>0)? sqrt(pow(Qx(level),2)+pow(Qy(level),2)): 0.;}
-    double      qy(int level=2)      const { return (sumw2_>0)? ((level>=0||level<=2)? sumSin_[level]/sqrt(sumw2_):sumSin_[2]/sqrt(sumw2_)):0.;}
-    double      qx(int level=2)      const { return (sumw2_>0)? ((level>=0||level<=2)? sumCos_[level]/sqrt(sumw2_):sumCos_[2]/sqrt(sumw2_)):0.;}
+    double      qy(int level=2)      const { return (mult_>0)? ((level>=0||level<=2)? sumSin_[level]/sqrt((double)mult_):sumSin_[2]/sqrt((double) mult_)):0.;}
+    double      qx(int level=2)      const { return (mult_>0)? ((level>=0||level<=2)? sumCos_[level]/sqrt((double)mult_):sumCos_[2]/sqrt((double) mult_)):0.;}
     double      q(int level=2)      const { return ((pow(qx(level),2)+pow(qy(level),2))>0)? sqrt(pow(qx(level),2)+pow(qy(level),2)): 0.;}
         
   private:

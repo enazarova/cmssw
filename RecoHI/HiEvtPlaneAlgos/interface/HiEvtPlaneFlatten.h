@@ -70,7 +70,6 @@ public:
     hbins = hfetbins*nvtxbins*hOrder;
     obins = hfetbins*nvtxbins;
     if(hbins>MAXCUT) {
-      std::cout<<"Too many cuts for flattening calculation.  RESET to deaults"<<std::endl;
       hbins = 1;
       hOrder = 9;
     }
@@ -104,7 +103,6 @@ public:
     //if(ietbin>hfetbins) ietbin=hfetbins-1;
     int ibin = centbin;
     int ivtx = (vtx-minvtx)/delvtx;
-    //std::cout<<et<<"\t"<<ietbin<<"\t"<<ivtx<<std::endl;
     if(vtx < minvtx || ivtx >= nvtxbins) return -1;
     cut = hOrder*nvtxbins*ibin + hOrder*ivtx + iord;
     if(cut<0 || cut>=hbins) return -1;
@@ -167,8 +165,8 @@ public:
   }
 
   double GetEtScale(double vtx, int centbin) {
-    int indx = GetOffsetIndx(centbin,vtx);
     if(caloCentRefMinBin_<0) return 1.;
+    int indx = GetOffsetIndx(centbin,vtx);
     int refmin = GetOffsetIndx(caloCentRefMinBin_,vtx);
     int refmax = GetOffsetIndx(caloCentRefMaxBin_,vtx);
     caloCentRefVal_ = 0;
