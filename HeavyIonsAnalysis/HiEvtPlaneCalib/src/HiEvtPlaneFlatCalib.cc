@@ -212,11 +212,6 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
   int Obins;
   bool genFlatPsi_;
   bool useOffsetPsi_;
-  bool useECAL_;
-  bool useHCAL_;
-  bool useTrack_;
-  bool useMomentumCorrV1_;
-  bool useTrackPtWeight_;
   double minet_;
   double maxet_;
   double effm_;
