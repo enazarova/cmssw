@@ -90,10 +90,6 @@ process.GlobalTag.toGet.extend([
         ])
 
 
-process.TFileService = cms.Service("TFileService",
-    fileName = cms.string("rpflat.root")
-)
-
 process.centralityBin.Centrality = cms.InputTag("hiCentrality")
 process.centralityBin.centralityVariable = cms.string("HFtowers")
 process.centralityBin.nonDefaultGlauberModel = cms.string("")
