@@ -237,7 +237,7 @@ EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig) {
   }
   centralityLabel_ = centralityVariable_+centralityMC_;
 
-  centralityBinTag_ = iConfig.getParameter<edm::InputTag>("centralityBinLabel");
+  centralityBinTag_ = iConfig.getParameter<edm::InputTag>("centralityBinTag");
   centralityBinToken = consumes<int>(centralityBinTag_);
 
   vertexTag_  = iConfig.getParameter<edm::InputTag>("vertexTag_");

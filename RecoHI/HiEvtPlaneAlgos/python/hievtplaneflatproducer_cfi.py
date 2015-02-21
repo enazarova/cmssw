@@ -3,7 +3,7 @@ import FWCore.ParameterSet.Config as cms
 hiEvtPlaneFlat = cms.EDProducer('HiEvtPlaneFlatProducer',
                                 vertexTag_=cms.InputTag("hiSelectedVertex"),
                                 centralityTag_=cms.InputTag("hiCentrality"),
-                                centralityBinLabel = cms.InputTag("centralityBin","HFtowers"),
+                                centralityBinTag = cms.InputTag("centralityBin","HFtowers"),
                                 centralityVariable = cms.string("HFtowers"),
                                 nonDefaultGlauberModel = cms.string(""),
                                 inputPlanesTag_ = cms.InputTag("hiEvtPlane","recoLevel"),

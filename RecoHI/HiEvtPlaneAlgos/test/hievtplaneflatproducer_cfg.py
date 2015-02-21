@@ -72,9 +72,6 @@ process.source = cms.Source("PoolSource",
                             )
 
 
-process.TFileService = cms.Service("TFileService",
-    fileName = cms.string("rpflat.root")
-)
 
 #process.CondDBCommon.connect = "sqlite_file:HeavyIonRPRcd_PbPb2011_74X_v01_offline.db"
 #process.PoolDBESSource = cms.ESSource("PoolDBESSource",
