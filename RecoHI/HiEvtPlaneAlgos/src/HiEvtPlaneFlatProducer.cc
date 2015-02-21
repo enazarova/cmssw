@@ -56,9 +56,11 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "CondFormats/DataRecord/interface/HeavyIonRPRcd.h"
+#include "CondFormats/DataRecord/interface/HeavyIonRcd.h"
 #include "CondFormats/HIObjects/interface/CentralityTable.h"
 #include "CondCore/DBOutputService/interface/PoolDBOutputService.h"
 #include "CondFormats/HIObjects/interface/RPFlatParams.h"
+#include "CondFormats/HIObjects/interface/CentralityTable.h"
 
 #include "RecoHI/HiEvtPlaneAlgos/interface/HiEvtPlaneFlatten.h"
 #include "TList.h"
@@ -93,9 +95,17 @@ class HiEvtPlaneFlatProducer : public edm::EDProducer {
       // ----------member data ---------------------------
 
 
-  edm::InputTag centralityTag_;  
-  edm::EDGetTokenT<int> centralityToken;
+  std::string centralityVariable_;
+  std::string centralityLabel_;
+  std::string centralityMC_;
+
+  edm::InputTag centralityBinTag_;
+  edm::EDGetTokenT<int> centralityBinToken;
   edm::Handle<int> cbin_;
+
+  edm::InputTag centralityTag_;
+  edm::EDGetTokenT<reco::Centrality> centralityToken;
+  edm::Handle<reco::Centrality> centrality;
 
   edm::InputTag vertexTag_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> vertexToken;
@@ -129,6 +139,7 @@ class HiEvtPlaneFlatProducer : public edm::EDProducer {
   int Hbins;
   int Obins;
   bool UseEtHF;
+  double nCentBins_;
 
   int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   {
@@ -184,8 +195,19 @@ typedef TrackingParticleRefVector::iterator               tp_iterator;
 HiEvtPlaneFlatProducer::HiEvtPlaneFlatProducer(const edm::ParameterSet& iConfig):runno_(0)
 {
   UseEtHF = kFALSE;
+  nCentBins_ = 200.;
+
+  centralityVariable_ = iConfig.getParameter<std::string>("centralityVariable");
+  if(iConfig.exists("nonDefaultGlauberModel")){
+    centralityMC_ = iConfig.getParameter<std::string>("nonDefaultGlauberModel");
+  }
+  centralityLabel_ = centralityVariable_+centralityMC_;
+
+  centralityBinTag_ = iConfig.getParameter<edm::InputTag>("centralityBinTag_");
+  centralityBinToken = consumes<int>(centralityBinTag_);
+
   centralityTag_ = iConfig.getParameter<edm::InputTag>("centralityTag_");
-  centralityToken = consumes<int>(centralityTag_);
+  centralityToken = consumes<reco::Centrality>(centralityTag_);
 
   vertexTag_  = iConfig.getParameter<edm::InputTag>("vertexTag_");
   vertexToken = consumes<std::vector<reco::Vertex>>(vertexTag_);
@@ -242,6 +264,28 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   bool newrun = false;
   if(runno_ != iEvent.id().run()) newrun = true;
   runno_ = iEvent.id().run();
+  
+  //
+  //Get Size of Centrality Table
+  //
+  edm::ESHandle<CentralityTable> centDB_;
+  iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
+  std::cout<<"Cent bins: "<<centDB_->m_table.size()<<std::cout<<endl;
+  nCentBins_ = centDB_->m_table.size();
+  for(int i = 0; i<NumEPNames; i++) {
+    flat[i]->SetCaloCentRefBins(-1,-1);
+    if(caloCentRef_>0) {
+      int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
+      int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
+      minbin/=CentBinCompression_;
+      maxbin/=CentBinCompression_;
+      if(minbin>0 && maxbin>=minbin) {
+	if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->SetCaloCentRefBins(minbin,maxbin);
+      }
+    }
+  }
+  
+  
   //
   //Get Flattening Parameters
   //
@@ -255,6 +299,15 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   if(FirstEvent || newrun) {
     FirstEvent = false;
     newrun = false;
+
+    //
+    //Get Size of Centrality Table
+    //
+    edm::ESHandle<CentralityTable> centDB_;
+    iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
+    std::cout<<"Cent bins: "<<centDB_->m_table.size()<<std::cout<<endl;
+    nCentBins_ = centDB_->m_table.size();
+
     edm::ESHandle<RPFlatParams> flatparmsDB_;
     iSetup.get<HeavyIonRPRcd>().get(flatparmsDB_);
     LoadEPDB * db = new LoadEPDB(flatparmsDB_,flat);
@@ -265,7 +318,7 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   //
 
   int bin = 0;
-  iEvent.getByToken(centralityToken, cbin_);
+  iEvent.getByToken(centralityBinToken, cbin_);
   int cbin = *cbin_;
   bin = cbin/CentBinCompression_; 
 

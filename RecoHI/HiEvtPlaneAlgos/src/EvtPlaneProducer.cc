@@ -56,6 +56,8 @@ Implementation:
 #include "RecoHI/HiEvtPlaneAlgos/interface/HiEvtPlaneList.h"
 #include "CondFormats/HIObjects/interface/RPFlatParams.h"
 #include "CondFormats/DataRecord/interface/HeavyIonRPRcd.h"
+#include "CondFormats/DataRecord/interface/HeavyIonRcd.h"
+#include "CondFormats/HIObjects/interface/CentralityTable.h"
 
 #include "DataFormats/Math/interface/Point3D.h"
 #include "DataFormats/Common/interface/RefProd.h"
@@ -173,8 +175,12 @@ private:
 
   edm::Service<TFileService> fs;
 
-  edm::InputTag centralityTag_;
-  edm::EDGetTokenT<int> centralityToken;
+  std::string centralityVariable_;
+  std::string centralityLabel_;
+  std::string centralityMC_;
+
+  edm::InputTag centralityBinTag_;
+  edm::EDGetTokenT<int> centralityBinToken;
   edm::Handle<int> cbin_;
 
 
@@ -212,6 +218,7 @@ private:
   int FlatOrder_;
   uint runno_; 
   int NumFlatBins_;
+  double nCentBins_;
   double caloCentRef_;
   double caloCentRefWidth_;
   int caloCentRefMinBin_;
@@ -222,8 +229,16 @@ private:
 
 EvtPlaneProducer::EvtPlaneProducer(const edm::ParameterSet& iConfig) {
 
-  centralityTag_ = iConfig.getParameter<edm::InputTag>("centralityBinLabel");
-  centralityToken = consumes<int>(centralityTag_);
+  nCentBins_ = 200.;
+
+  centralityVariable_ = iConfig.getParameter<std::string>("centralityVariable");
+  if(iConfig.exists("nonDefaultGlauberModel")){
+    centralityMC_ = iConfig.getParameter<std::string>("nonDefaultGlauberModel");
+  }
+  centralityLabel_ = centralityVariable_+centralityMC_;
+
+  centralityBinTag_ = iConfig.getParameter<edm::InputTag>("centralityBinLabel");
+  centralityBinToken = consumes<int>(centralityBinTag_);
 
   vertexTag_  = iConfig.getParameter<edm::InputTag>("vertexTag_");
   vertexToken = consumes<std::vector<reco::Vertex>>(vertexTag_);
@@ -293,6 +308,25 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   if( (FirstEvent && loadDB_)|| (newrun&&loadDB_)) {
     FirstEvent = kFALSE;
     newrun = false;
+    //
+    //Get Size of Centrality Table
+    //
+    edm::ESHandle<CentralityTable> centDB_;
+    iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
+    nCentBins_ = centDB_->m_table.size();
+    for(int i = 0; i<NumEPNames; i++) {
+      flat[i]->SetCaloCentRefBins(-1,-1);
+      if(caloCentRef_>0) {
+	int minbin = (caloCentRef_-caloCentRefWidth_/2.)*nCentBins_/100.;
+	int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*nCentBins_/100.;
+	minbin/=CentBinCompression_;
+	maxbin/=CentBinCompression_;
+	if(minbin>0 && maxbin>=minbin) {
+	  if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->SetCaloCentRefBins(minbin,maxbin);
+	}
+      }
+    }
+
 
     //
     //Get flattening parameter file.  
@@ -311,7 +345,7 @@ EvtPlaneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   //Get Centrality
   //
   int bin = 0;
-  iEvent.getByToken(centralityToken, cbin_);
+  iEvent.getByToken(centralityBinToken, cbin_);
   int cbin = *cbin_;
   bin = cbin/CentBinCompression_; 
 
