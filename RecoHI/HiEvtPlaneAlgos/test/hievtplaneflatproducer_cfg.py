@@ -76,14 +76,22 @@ process.TFileService = cms.Service("TFileService",
     fileName = cms.string("rpflat.root")
 )
 
-process.CondDBCommon.connect = "sqlite_file:HeavyIonRPRcd_PbPb2011_74X_v01_offline.db"
-process.PoolDBESSource = cms.ESSource("PoolDBESSource",
-                                       process.CondDBCommon,
-                                       toGet = cms.VPSet(cms.PSet(record = cms.string('HeavyIonRPRcd'),
-                                                                  tag = cms.string('HeavyIonRPRcd_PbPb2011_74X_v01_offline')
-                                                                  )
-                                                         )
-                                      )
+#process.CondDBCommon.connect = "sqlite_file:HeavyIonRPRcd_PbPb2011_74X_v01_offline.db"
+#process.PoolDBESSource = cms.ESSource("PoolDBESSource",
+#                                       process.CondDBCommon,
+#                                       toGet = cms.VPSet(cms.PSet(record = cms.string('HeavyIonRPRcd'),
+#                                                                  tag = cms.string('HeavyIonRPRcd_PbPb2011_74X_v01_offline')
+#                                                                  )
+#                                                         )
+#                                      )
+
+process.GlobalTag.toGet.extend([
+        cms.PSet(record = cms.string("HeavyIonRPRcd"),
+                 tag = cms.string('HeavyIonRPRcd_PbPb2011_74X_v01_offline'),
+                 connect = cms.untracked.string("frontier://FrontierProd/CMS_COND_PAT_000")
+                 )
+        ])
+
 
 process.TFileService = cms.Service("TFileService",
     fileName = cms.string("rpflat.root")
