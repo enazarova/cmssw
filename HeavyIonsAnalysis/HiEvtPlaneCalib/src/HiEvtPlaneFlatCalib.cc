@@ -546,7 +546,6 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     //
     edm::ESHandle<CentralityTable> centDB_;
     iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
-    std::cout<<"Cent bins: "<<(int) centDB_->m_table.size()<<endl;
     nCentBins_ = (int) centDB_->m_table.size();
     for(int i = 0; i<NumEPNames; i++) {
       flat[i]->SetCaloCentRefBins(-1,-1);
