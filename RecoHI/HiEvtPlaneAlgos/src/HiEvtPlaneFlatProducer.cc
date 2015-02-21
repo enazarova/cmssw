@@ -270,7 +270,6 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   edm::ESHandle<CentralityTable> centDB_;
   iSetup.get<HeavyIonRcd>().get(centralityLabel_,centDB_);
-  std::cout<<"Cent bins: "<<centDB_->m_table.size()<<std::cout<<endl;
   nCentBins_ = centDB_->m_table.size();
   for(int i = 0; i<NumEPNames; i++) {
     flat[i]->SetCaloCentRefBins(-1,-1);
