@@ -85,7 +85,7 @@ private:
 
   edm::InputTag centralityTag_;
   edm::EDGetTokenT<reco::Centrality> centralityToken;
-  edm::Handle<reco::Centrality> centrality;
+  edm::Handle<reco::Centrality> centrality_;
 
   edm::InputTag vertexTag_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> vertexToken;
@@ -141,6 +141,7 @@ private:
   Double_t qx[NumEPNames];
   Double_t qy[NumEPNames];
   Double_t q[NumEPNames];
+  Double_t vn[NumEPNames];
   Double_t epmult[NumEPNames];
 
   Double_t rescor[NumEPNames];
@@ -190,41 +191,9 @@ private:
   bool Branch_Run;
   bool Branch_Rescor;
   bool Branch_RescorErr;
+  bool Branch_vn;
 
 
-  int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup)
-  {
-    int Noff = 0;
-    using namespace edm;
-    using namespace reco;
-  
-    iEvent.getByToken(vertexToken, vertex_);
-    const VertexCollection * recoVertices = vertex_.product();
-  
-    int primaryvtx = 0;
-    math::XYZPoint v1( (*recoVertices)[primaryvtx].position().x(), (*recoVertices)[primaryvtx].position().y(), (*recoVertices)[primaryvtx].position().z() );
-    double vxError = (*recoVertices)[primaryvtx].xError();
-    double vyError = (*recoVertices)[primaryvtx].yError();
-    double vzError = (*recoVertices)[primaryvtx].zError();
-    iEvent.getByToken(trackToken,trackCollection_);
-    for(TrackCollection::const_iterator itTrack = trackCollection_->begin();
-	itTrack != trackCollection_->end();                      
-	++itTrack) {    
-      if ( !itTrack->quality(reco::TrackBase::highPurity) ) continue;
-      if ( itTrack->charge() == 0 ) continue;
-      if ( itTrack->pt() < 0.4 ) continue;
-      double d0 = -1.* itTrack->dxy(v1);
-      double derror=sqrt(itTrack->dxyError()*itTrack->dxyError()+vxError*vyError);
-      double dz=itTrack->dz(v1);
-      double dzerror=sqrt(itTrack->dzError()*itTrack->dzError()+vzError*vzError);
-      if ( fabs(itTrack->eta()) > 2.4 ) continue;
-      if ( fabs( dz/dzerror ) > 3. ) continue;
-      if ( fabs( d0/derror ) > 3. ) continue;
-      if ( itTrack->ptError()/itTrack->pt() > 0.1 ) continue;
-      Noff++;
-    }
-    return Noff;
-  }
 
 
 };
@@ -298,6 +267,7 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   Branch_Run = iConfig.getUntrackedParameter<bool>("Branch_Run",true);
   Branch_Rescor = iConfig.getUntrackedParameter<bool>("Branch_Rescor",true);
   Branch_RescorErr = iConfig.getUntrackedParameter<bool>("Branch_RescorErr",true);
+  Branch_vn = iConfig.getUntrackedParameter<bool>("Branch_vn",true);
 
   hcent = fs->make<TH1D>("cent","cent",220,-10,110);
   hcentbins = fs->make<TH1D>("centbins","centbins",201,0,200);
@@ -351,7 +321,7 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   if(Branch_Run)               tree->Branch("Run",     &runno_,   "run/i");
   if(Branch_Rescor)            tree->Branch("Rescor",  &rescor,   epnames.Data());
   if(Branch_RescorErr)         tree->Branch("RescorErr",  &rescorErr,   epnames.Data());
-
+  if(Branch_vn)                tree->Branch("vn", &vn, epnames.Data());
 }
 
 
@@ -415,10 +385,14 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   //Get Centrality
   //
   int bin = 0;
-  int Noff = getNoff( iEvent, iSetup);
-  ntrkval = Noff;
-  if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
-    return;
+  int Noff=0;
+  if(Noffmin_>=0) {
+    iEvent.getByToken(centralityToken, centrality_);
+    int Noff = centrality_->Ntracks();
+    ntrkval = Noff;
+    if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
+      return;
+    }
   }
   hNtrkoff->Fill(Noff);
 
@@ -479,6 +453,7 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     qx[indx]  = rp->qx(); 
     qy[indx]  = rp->qy();
     q[indx]   = rp->q();
+    vn[indx] = rp->vn(0);
     sumw[indx]   = rp->sumw();
     sumw2[indx] = rp->sumw2();
     sumPtOrEt[indx] = rp->sumPtOrEt();

@@ -1,6 +1,12 @@
 
 //
-// $Id: EvtPlane.h,v 1.4 2009/09/08 12:33:11 edwenger Exp $
+// Levels:
+//      
+//    0   Neither recentering nor flattening is done.  The final weights are applied.
+//    1   The sums over the sines and cosines are recentered.
+//    2   Final results including both recentering and flattening.  Default if the level is not specified.
+//    3   Calculation where all weights are set to unity.
+//
 //
 
 #ifndef DataFormats_EvtPlane_h
@@ -26,11 +32,12 @@ namespace reco { class EvtPlane {
     double      mult()    const { return mult_;}
     double      Qy(int level=2) const { return sumSin(level); }
     double      Qx(int level=2) const { return sumCos(level); }
-    double      Q(int level=2)      const { return ((pow(Qx(level),2)+pow(Qy(level),2))>0)? sqrt(pow(Qx(level),2)+pow(Qy(level),2)): 0.;}
-    double      qy(int level=2)      const { return (mult_>0)? ((level>=0||level<=2)? sumSin_[level]/sqrt((double)mult_):sumSin_[2]/sqrt((double) mult_)):0.;}
-    double      qx(int level=2)      const { return (mult_>0)? ((level>=0||level<=2)? sumCos_[level]/sqrt((double)mult_):sumCos_[2]/sqrt((double) mult_)):0.;}
-    double      q(int level=2)      const { return ((pow(qx(level),2)+pow(qy(level),2))>0)? sqrt(pow(qx(level),2)+pow(qy(level),2)): 0.;}
-        
+    double      Q(int level=2)  const { return ((pow(Qx(level),2)+pow(Qy(level),2))>0)? sqrt(pow(Qx(level),2)+pow(Qy(level),2)): 0.;}
+    double      qy(int level=2) const { return (mult_>0)? ((level>=0||level<=2)? sumSin_[level]/sqrt((double)mult_):sumSin_[2]/sqrt((double) mult_)):0.;}
+    double      qx(int level=2) const { return (mult_>0)? ((level>=0||level<=2)? sumCos_[level]/sqrt((double)mult_):sumCos_[2]/sqrt((double) mult_)):0.;}
+    double      q(int level=2)  const { return ((pow(qx(level),2)+pow(qy(level),2))>0)? sqrt(pow(qx(level),2)+pow(qy(level),2)): 0.;}
+    double      vn(int level=2) const{ return (Q(level)>0 && fabs(sumw())>0)? Q(level)/fabs(sumw()): 0.;}   
+
   private:
     int           indx_;
     double        angle_[4];
