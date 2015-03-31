@@ -14,7 +14,7 @@
 
 using namespace std;
 
-#include "/home/sanders/CMSSW_5_3_20_dev/src/RecoHI/HiEvtPlaneAlgos/interface/HiEvtPlaneList.h"
+#include "../../../RecoHI/HiEvtPlaneAlgos/interface/HiEvtPlaneList.h"
 using namespace hi;
 
 TFile * tf;
@@ -25,7 +25,7 @@ void ResCor(Double_t mincent, Double_t maxcent, Double_t delcent, Double_t minvt
   for(int i = 0; i<NumEPNames; i++) {
     fout[i] = fopen(Form("RescorTables/%s_%04.1f.dat",EPNames[i].data(),delcent),"w");
   }
-  tf = new TFile("data/rpflat_combined.root");
+  tf = new TFile("data/rpflat.root");
   tr = (TTree *) tf->Get("hiEvtPlaneFlatCalib/tree");
   int nbins = (int) ( (maxcent-mincent)/delcent+0.1 );
   Double_t full[50];

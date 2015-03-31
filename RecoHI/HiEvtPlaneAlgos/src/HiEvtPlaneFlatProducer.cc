@@ -95,18 +95,13 @@ class HiEvtPlaneFlatProducer : public edm::EDProducer {
 
 
   edm::InputTag centralityTag_;  
-  //edm::EDGetTokenT<reco::Centrality> centralityToken;
   edm::Handle<reco::Centrality> centrality_;
   CentralityProvider * centProvider;
   edm::InputTag vertexTag_;
-  //edm::EDGetTokenT<std::vector<reco::Vertex>> vertexToken;
   edm::Handle<std::vector<reco::Vertex>> vertex_;
 
   edm::InputTag inputPlanesTag_;
-
-
   edm::InputTag trackTag_;
-  //edm::EDGetTokenT<reco::TrackCollection> trackToken;
   edm::Handle<reco::TrackCollection> trackCollection_;
 
   int FlatOrder_;
@@ -116,7 +111,6 @@ class HiEvtPlaneFlatProducer : public edm::EDProducer {
   int caloCentRefMaxBin_;
   int NumFlatBins_;
   int CentBinCompression_;
-  int HFEtScale_;
   int Noffmin_;
   int Noffmax_;
   double ntrkval;
@@ -193,7 +187,6 @@ HiEvtPlaneFlatProducer::HiEvtPlaneFlatProducer(const edm::ParameterSet& iConfig)
   CentBinCompression_ = iConfig.getUntrackedParameter<int>("CentBinCompression_",5);
   caloCentRef_ = iConfig.getUntrackedParameter<double>("caloCentRef_",80.);
   caloCentRefWidth_ = iConfig.getUntrackedParameter<double>("caloCentRefWidth_",5.);
-  HFEtScale_ = iConfig.getUntrackedParameter<int>("HFEtScale_",3800);
   Noffmin_ = iConfig.getUntrackedParameter<int>("Noffmin_", 0);
   Noffmax_ = iConfig.getUntrackedParameter<int>("Noffmax_", 50000);	
   useOffsetPsi_ = iConfig.getUntrackedParameter<bool>("useOffsetPsi_",true);
@@ -203,7 +196,7 @@ HiEvtPlaneFlatProducer::HiEvtPlaneFlatProducer(const edm::ParameterSet& iConfig)
    //now do what ever other initialization is needed
   for(int i = 0; i<NumEPNames; i++) {
     flat[i] = new HiEvtPlaneFlatten();
-    flat[i]->Init(FlatOrder_,NumFlatBins_,HFEtScale_,EPNames[i],EPOrder[i]);
+    flat[i]->Init(FlatOrder_,NumFlatBins_,EPNames[i],EPOrder[i]);
   }
   Hbins = flat[0]->GetHBins();
   Obins = flat[0]->GetOBins();
@@ -241,6 +234,7 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   //
   if(Noffmin_>=0) {
     int Noff = getNoff( iEvent, iSetup);
+
     ntrkval = Noff;
     if ( (Noff < Noffmin_) or (Noff >= Noffmax_) ) {
       return;
@@ -260,21 +254,19 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
 
   int bin = 0;
   try{iEvent.getByLabel(centralityTag_, centrality_);} catch(...){;}
-  if(centrality_.isValid()) { 
-    double hfetval = centrality_->EtHFtowerSum();
-    bin = flat[0]->GetHFbin(hfetval);
-  }
   
   if(!centProvider) {
     for(int i = 0; i<NumEPNames; i++) flat[i]->SetCaloCentRefBins(-1,-1);
     centProvider = new CentralityProvider(iSetup);
-    int minbin = (caloCentRef_-caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
-    int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
-    minbin/=CentBinCompression_;
-    maxbin/=CentBinCompression_;
-    if(minbin>0 && maxbin>=minbin) {
-      for(int i = 0; i<NumEPNames; i++) {
-	if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->SetCaloCentRefBins(minbin,maxbin);
+    if(caloCentRef_>0) {
+      int minbin = (caloCentRef_-caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
+      int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
+      minbin/=CentBinCompression_;
+      maxbin/=CentBinCompression_;
+      if(minbin>0 && maxbin>=minbin) {
+	for(int i = 0; i<NumEPNames; i++) {
+	  if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->SetCaloCentRefBins(minbin,maxbin);
+	}
       }
     }
   }
@@ -303,7 +295,6 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
   iEvent.getByLabel(inputPlanesTag_,evtPlanes);
   
   if(!evtPlanes.isValid()){
-    //    cout << "Error! Can't get hiEvtPlane product!" << endl;
     return ;
   }
 
@@ -323,7 +314,6 @@ HiEvtPlaneFlatProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetu
 	double psiOffset = angorig;
 	if(useOffsetPsi_) psiOffset = flat[i]->GetOffsetPsi(s,c,w,m,vzr_sell,bin);
 	double psiFlat = flat[i]->GetFlatPsi(psiOffset,vzr_sell,bin);
-	;
 	ep[i]= new EvtPlane(i, 2, psiFlat, flat[i]->sumSin(), flat[i]->sumCos(),rp->sumw(), rp->sumw2(), rp->sumPtOrEt(), rp->sumPtOrEt2(),  rp->mult());
 	ep[i]->AddLevel(0,rp->angle(), rp->sumSin(), rp->sumCos());
 	ep[i]->AddLevel(3,0., rp->sumSin(3), rp->sumCos(3));

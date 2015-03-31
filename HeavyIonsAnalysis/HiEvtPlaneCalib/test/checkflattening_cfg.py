@@ -43,19 +43,19 @@ process.source = cms.Source("PoolSource",
 ##
 
 #process.load("CondCore.DBCommon.CondDBCommon_cfi")
-#process.CondDBCommon.connect = "sqlite_file:flatparms.db"
+#process.CondDBCommon.connect = "sqlite_file:HeavyIonRPRcd_PbPb2011_5320_v03_offline.db"
 #process.PoolDBESSource2 = cms.ESSource("PoolDBESSource",
 #                                      process.CondDBCommon,
 #                                      toGet = cms.VPSet(cms.PSet(record = cms.string('HeavyIonRPRcd'),
-#                                                                 tag = cms.string('EPFlattening_HIRun2011_v5320devx02_offline')
+#                                                                 tag = cms.string('HeavyIonRPRcd_PbPb2011_5320_v03_offline')
 #                                                                 )
 #                                                        )
 #                                      )
 
 process.GlobalTag.toGet.extend([
         cms.PSet(record = cms.string("HeavyIonRPRcd"),
-                 tag = cms.string('HeavyIonRPRcd_PbPb2011_5320_v01_offline'),
-                 connect = cms.untracked.string("frontier://FrontierProd/CMS_COND_PAT_000")
+                 tag = cms.string('HeavyIonRPRcd_PbPb2011_5320_v03_offline'),
+                 connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS")
                  )
         ])
 
@@ -74,4 +74,3 @@ process.hiEvtPlane.maxvtx_ = cms.untracked.double(25.)
 
 
 process.p = cms.Path(process.collisionEventSelection*process.hltMinBiasHFOrBSC*process.hiEvtPlane*process.hiEvtPlaneFlat*process.checkflattening)
-

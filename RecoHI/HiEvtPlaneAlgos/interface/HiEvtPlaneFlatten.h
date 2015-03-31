@@ -58,17 +58,14 @@ public:
   }
 
 
-  void Init(int order, int nbins,  const int hfetscale, std::string tag, int vord)
+  void Init(int order, int nbins,   std::string tag, int vord)
   {
     hOrder = order;  //order of flattening
     vorder = vord;   //1(v1), 2(v2), 3(v3), 4(v4)	
-    hfetbins = nbins;
     caloCentRefMinBin_ = -1;
     caloCentRefMaxBin_ = -1;
-    scale = (double) hfetscale;
-    if(hfetbins<=0) hfetbins = 1;
-    hbins = hfetbins*nvtxbins*hOrder;
-    obins = hfetbins*nvtxbins;
+    hbins = nbins*nvtxbins*hOrder;
+    obins = nbins*nvtxbins;
     if(hbins>MAXCUT) {
       hbins = 1;
       hOrder = 9;
@@ -253,14 +250,6 @@ public:
   void SetYoffDB(int indx, double val) {yoffDB[indx]=val;}
   void SetPtDB(int indx, double val) {ptDB[indx]=val;}
   void SetPt2DB(int indx, double val) {pt2DB[indx]=val;}
-  int GetHFbin(int hfetval){
-    double v = 9.*(hfetval/scale)+1;
-    v =  hfetbins*log10(v);
-    int vout = v;
-    if(vout<0) vout=0;
-    if(vout>(hfetbins-1)) vout=hfetbins-1;
-    return vout;
-  }
   double sumSin() const { return soff_; }
   double sumCos() const { return coff_; }
   double sumw()  const { return w_; }
@@ -354,7 +343,6 @@ private:
 
 
   int hOrder;    //flattening order
-  int hfetbins; //# of hfet bins
   double scale;
   int hbins; //number of bins needed for flattening
   int obins; //number of (x,y) offset bins

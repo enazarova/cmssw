@@ -73,14 +73,10 @@ private:
   virtual void endJob() ;
   // ----------member data ---------------------------
   int eporder_;
-  // edm::InputTag trackCollection_;
-  //edm::InputTag vtxCollection_;
-  //edm::InputTag inputPlanes_;
-  //  edm::InputTag centrality_;
 
-  //edm::InputTag centralityTag_;  
+  edm::InputTag centralityTag_;  
   //edm::EDGetTokenT<reco::Centrality> centralityToken;
-  //edm::Handle<reco::Centrality> centrality_;
+  edm::Handle<reco::Centrality> centrality_;
 
   edm::InputTag vertexTag_;
   //edm::EDGetTokenT<std::vector<reco::Vertex>> vertexToken;
@@ -132,6 +128,7 @@ private:
   Double_t qx[NumEPNames];
   Double_t qy[NumEPNames];
   Double_t q[NumEPNames];
+  Double_t vn[NumEPNames];
   Double_t epmult[NumEPNames];
 
   Double_t rescor[NumEPNames];
@@ -149,7 +146,6 @@ private:
   int FlatOrder_;
   int NumFlatBins_;
   int CentBinCompression_;
-  int HFEtScale_;
   int Noffmin_;
   int Noffmax_;
 
@@ -183,6 +179,7 @@ private:
   bool Branch_Run;
   bool Branch_Rescor;
   bool Branch_RescorErr;
+  bool Branch_vn;
 
 
   int getNoff(const edm::Event& iEvent, const edm::EventSetup& iSetup)
@@ -248,7 +245,6 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   FlatOrder_ = iConfig.getUntrackedParameter<int>("FlatOrder_", 9);
   NumFlatBins_ = iConfig.getUntrackedParameter<int>("NumFlatBins_",20);
   CentBinCompression_ = iConfig.getUntrackedParameter<int>("CentBinCompression_",5);
-  HFEtScale_ = iConfig.getUntrackedParameter<int>("HFEtScale_",3800);
   Noffmin_ = iConfig.getUntrackedParameter<int>("Noffmin_", 0);
   Noffmax_ = iConfig.getUntrackedParameter<int>("Noffmax_", 50000);	
   hNtrkoff = fs->make<TH1D>("Ntrkoff","Ntrkoff",1001,0,3000);
@@ -279,6 +275,7 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   Branch_Run = iConfig.getUntrackedParameter<bool>("Branch_Run",true);
   Branch_Rescor = iConfig.getUntrackedParameter<bool>("Branch_Rescor",true);
   Branch_RescorErr = iConfig.getUntrackedParameter<bool>("Branch_RescorErr",true);
+  Branch_vn = iConfig.getUntrackedParameter<bool>("Branch_vn",true);
 
   hcent = fs->make<TH1D>("cent","cent",220,-10,110);
   hcentbins = fs->make<TH1D>("centbins","centbins",201,0,200);
@@ -300,7 +297,7 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
     Psi[i] = subdir.make<TH1D>(Form("Psi_%s",EPNames[i].data()),Form("Psi_%s",EPNames[i].data()),800,-psirange,psirange);
 
     flat[i] = new HiEvtPlaneFlatten();
-    flat[i]->Init(FlatOrder_,NumFlatBins_,HFEtScale_,EPNames[i],EPOrder[i]);
+    flat[i]->Init(FlatOrder_,NumFlatBins_,EPNames[i],EPOrder[i]);
 
   }
   tree = fs->make<TTree>("tree","EP tree");
@@ -333,6 +330,7 @@ CheckFlattening::CheckFlattening(const edm::ParameterSet& iConfig):runno_(0)
   if(Branch_Run)               tree->Branch("Run",     &runno_,   "run/i");
   if(Branch_Rescor)            tree->Branch("Rescor",  &rescor,   epnames.Data());
   if(Branch_RescorErr)         tree->Branch("RescorErr",  &rescorErr,   epnames.Data());
+  if(Branch_vn)                tree->Branch("vn", &vn, epnames.Data());
 
 }
 
@@ -445,8 +443,9 @@ CheckFlattening::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     qx[indx]  = rp->qx(); 
     qy[indx]  = rp->qy();
     q[indx]   = rp->q();
+    vn[indx]  = rp->vn(0);
     sumw[indx]   = rp->sumw();
-    sumw2[indx] = rp->sumw2();
+    sumw2[indx]  = rp->sumw2();
     sumPtOrEt[indx] = rp->sumPtOrEt();
     sumPtOrEt2[indx] = rp->sumPtOrEt2();
 

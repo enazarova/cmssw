@@ -148,8 +148,8 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
   TH1D * flatYhist[NumEPNames];
   TH1D * flatXhistChk[NumEPNames];
   TH1D * flatYhistChk[NumEPNames];
-  TH2D * hPsiPsiFlat[NumEPNames];	
-  TH2D * hPsiPsiOffset[NumEPNames];	
+  //TH2D * hPsiPsiFlat[NumEPNames];	
+  //TH2D * hPsiPsiOffset[NumEPNames];	
   TH1D * flatCnthist[NumEPNames];
 
   TH1D * xoffhist[NumEPNames];
@@ -232,7 +232,6 @@ class HiEvtPlaneFlatCalib : public edm::EDAnalyzer {
 
   int NumFlatBins_;
   int CentBinCompression_;
-  int HFEtScale_;
   int Noffmin_;
   int Noffmax_;
   bool UseEtHF;
@@ -315,13 +314,12 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
   if(NumFlatBins_ > MaxNumFlatBins) {
     cout<<"NumFlatBins set to max of "<<MaxNumFlatBins<<endl;
   }
-  HFEtScale_ = iConfig.getUntrackedParameter<int>("HFEtScale_",3800);
   useOffsetPsi_ = iConfig.getUntrackedParameter<bool>("useOffsetPsi_",true);
   minet_ = iConfig.getUntrackedParameter<double>("minet_",-1.);
   maxet_ = iConfig.getUntrackedParameter<double>("maxet_",-1.);
   effm_ = iConfig.getUntrackedParameter<double>("effm_",0.0);
-  minpt_ = iConfig.getUntrackedParameter<double>("minpt_",-1.);
-  maxpt_ = iConfig.getUntrackedParameter<double>("maxpt_",-1.);
+  minpt_ = iConfig.getUntrackedParameter<double>("minpt_",0.5);
+  maxpt_ = iConfig.getUntrackedParameter<double>("maxpt_",3.0);
   minvtx_ = iConfig.getUntrackedParameter<double>("minvtx_",-50.);
   maxvtx_ = iConfig.getUntrackedParameter<double>("maxvtx_",50.);
   dzerr_ = iConfig.getUntrackedParameter<double>("dzerr_",10.);
@@ -332,7 +330,6 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
   FirstEvent = kTRUE;
 
   //now do what ever other initialization is needed
-  hethf = fs->make<TH1D>("ethf","ethf",501,0,1.2*HFEtScale_);
   hcent = fs->make<TH1D>("cent","cent",101,0,100);
   hetbins = fs->make<TH1D>("etbins","etbins",NumFlatBins_ + 1,0,NumFlatBins_);
   hcentbins = fs->make<TH1D>("centbins","centbins",201,0,200);
@@ -345,7 +342,7 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
     if(i>0) epnames = epnames + ":" + EPNames[i].data() + "/D";
     TFileDirectory subdir = fs->mkdir(Form("%s",EPNames[i].data()));
     flat[i] = new HiEvtPlaneFlatten();
-    flat[i]->Init(FlatOrder_,NumFlatBins_,HFEtScale_,EPNames[i],EPOrder[i]);
+    flat[i]->Init(FlatOrder_,NumFlatBins_,EPNames[i],EPOrder[i]);
     Hbins = flat[i]->GetHBins();
     Obins = flat[i]->GetOBins();
     //cout<<NumFlatBins_<<"\t"<<HFEtScale_<<"\t"<<Hbins<<"\t"<<Obins<<endl;
@@ -409,15 +406,15 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
     hPsiOffset[i] = subdir.make<TH1D>("psiOffset","psiOffset",800,-psirange,psirange);
     hPsiOffset[i]->SetXTitle("#Psi");
     hPsiOffset[i]->SetYTitle(Form("Counts (cent<80%c)",'%'));
-    hPsiPsiFlat[i] = subdir.make<TH2D>("PsiPsiFlat","PsiFlat vs. Psi",80,-psirange,psirange,80,-psirange,psirange);
-    hPsiPsiFlat[i]->SetOption("colz");
-    hPsiPsiFlat[i]->SetXTitle("#Psi_{flat}");
-    hPsiPsiFlat[i]->SetYTitle("#Psi");
+    // hPsiPsiFlat[i] = subdir.make<TH2D>("PsiPsiFlat","PsiFlat vs. Psi",80,-psirange,psirange,80,-psirange,psirange);
+    // hPsiPsiFlat[i]->SetOption("colz");
+    // hPsiPsiFlat[i]->SetXTitle("#Psi_{flat}");
+    // hPsiPsiFlat[i]->SetYTitle("#Psi");
 
-    hPsiPsiOffset[i] = subdir.make<TH2D>("PsiPsiOffset","PsiOfset vs. PsiOrig",80,-psirange,psirange,80,-psirange,psirange);
-    hPsiPsiOffset[i]->SetOption("colz");
-    hPsiPsiOffset[i]->SetXTitle("#Psi_{flat}");
-    hPsiPsiOffset[i]->SetYTitle("#Psi");
+    // hPsiPsiOffset[i] = subdir.make<TH2D>("PsiPsiOffset","PsiOfset vs. PsiOrig",80,-psirange,psirange,80,-psirange,psirange);
+    // hPsiPsiOffset[i]->SetOption("colz");
+    // hPsiPsiOffset[i]->SetXTitle("#Psi_{flat}");
+    // hPsiPsiOffset[i]->SetYTitle("#Psi");
     TFileDirectory psiflat = subdir.mkdir("PsiFlatCent");
     TFileDirectory phispec = subdir.mkdir("PhiCent");
     TFileDirectory phiwspec = subdir.mkdir("PhiWCent");
@@ -450,7 +447,7 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
       } else {
 	hnamept = Form("pt_%d",j);
       } 
-      hPtCent[i][j] = ptspec.make<TH1D>(hnamept.Data(),hnamept.Data(),3000,0,30);
+      hPtCent[i][j] = ptspec.make<TH1D>(hnamept.Data(),hnamept.Data(),3000,0,(30<maxTransverse[i])?maxTransverse[i]:30.);
       if(EPDet[i]==HF || EPDet[i]==Castor) {
 	hPtCent[i][j]->SetXTitle("E_{T}");
       } else {
@@ -464,7 +461,6 @@ HiEvtPlaneFlatCalib::HiEvtPlaneFlatCalib(const edm::ParameterSet& iConfig):runno
   tree = fs->make<TTree>("tree","EP tree");
   tree->Branch("Cent",    &centval,    "cent/D");
   tree->Branch("Vtx",     &vtx,        "vtx/D");
-  tree->Branch("HFEt",    &hfetcentval,"HF_Et/D");
   tree->Branch("EP",      &epang,      epnames.Data());
   tree->Branch("EP_orig", &epang_orig, epnames.Data());
   tree->Branch("EP_offset",  &epang_offset, epnames.Data());
@@ -576,29 +572,21 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     return;
   }
   hNtrkoff->Fill(Noff);
-  if(foundCentTag) {
-    try{iEvent.getByLabel(centralityTag_, centrality_);} catch(...){;}
-    if(centrality_.isValid()) {
-      hfetcentval = centrality_->EtHFtowerSum();
-      hethf->Fill(hfetcentval);
-      bin = flat[0]->GetHFbin(hfetcentval);
-      hetbins->Fill(bin);
-    } else {
-      foundCentTag = kFALSE;
-    }
-  }
+
 
 
   if(!centProvider) {
     for(int i = 0; i< NumEPNames; i++) flat[i]->SetCaloCentRefBins(-1,-1);
     centProvider = new CentralityProvider(iSetup);
-    int minbin = (caloCentRef_-caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
-    int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
-    minbin/=CentBinCompression_;
-    maxbin/=CentBinCompression_;
-    if(minbin>0 && maxbin>=minbin) {
-      for(int i = 0; i<NumEPNames; i++) {
-	if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->SetCaloCentRefBins(minbin,maxbin);
+    if(caloCentRef_>0) {
+      int minbin = (caloCentRef_-caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
+      int maxbin = (caloCentRef_+caloCentRefWidth_/2.)*centProvider->getNbins()/100.;
+      minbin/=CentBinCompression_;
+      maxbin/=CentBinCompression_;
+      if(minbin>0 && maxbin>=minbin) {
+	for(int i = 0; i<NumEPNames; i++) {
+	  if(EPDet[i]==HF || EPDet[i]==Castor) flat[i]->SetCaloCentRefBins(minbin,maxbin);
+	}
       }
     }
   }
@@ -610,7 +598,6 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   centval = cscale*cbin;
   hcent->Fill(centval);
   hcentbins->Fill(cbin);
-
   for(int i = 0; i<NumEPNames; i++) {
     rescor[i] = flat[i]->GetCentRes1((int) centval);
     rescorerr[i] = flat[i]->GetCentResErr1((int) centval);
@@ -883,8 +870,8 @@ HiEvtPlaneFlatCalib::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	if(bin>=0&&abs(vtx)<plotZrange) {
 	  hPsiFlat[i]->Fill(psiFlat);
 	  hPsiOffset[i]->Fill(psiOffset);
-	  hPsiPsiFlat[i]->Fill(angorig,psiFlat);
-	  hPsiPsiOffset[i]->Fill(angorig,psiOffset);
+	  //hPsiPsiFlat[i]->Fill(angorig,psiFlat);
+	  //hPsiPsiOffset[i]->Fill(angorig,psiOffset);
 	}
 	hPsiFlatCent[i][bin]->Fill(psiFlat);
       }
