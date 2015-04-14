@@ -1,7 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
 hiEvtPlane = cms.EDProducer("EvtPlaneProducer",
-                            vertexTag_=cms.InputTag("hiSelectedVertex"),
+                            vtxCollection_=cms.InputTag("hiSelectedVertex"),
                             centralityTag_=cms.InputTag("hiCentrality"),
                             caloTag_=cms.InputTag("towerMaker"),
                             castorTag_=cms.InputTag("CastorTowerReco"),
